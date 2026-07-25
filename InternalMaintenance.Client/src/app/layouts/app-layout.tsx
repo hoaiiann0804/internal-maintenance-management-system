@@ -44,9 +44,8 @@ export function AppLayout() {
       <Toaster
         position="top-right"
         richColors
-        closeButton
-        expand
-        duration={6000}
+        duration={3500}
+        visibleToasts={3}
         toastOptions={{ style: { borderRadius: "12px" } }}
       />
 
