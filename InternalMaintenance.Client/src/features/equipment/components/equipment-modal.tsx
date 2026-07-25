@@ -7,6 +7,18 @@ import {
 } from "../api/use-equipment-mutations";
 import { useDepartmentsQuery } from "../api/use-departments-query";
 import type { Equipment, EquipmentStatus } from "../../../entities/equipment/model/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 type Props = {
   equipment: Equipment | null; // null if creating
@@ -64,8 +76,6 @@ export function EquipmentModal({ equipment, isOpen, onClose }: Props) {
   const createMutation = useCreateEquipmentMutation();
   const updateMutation = useUpdateEquipmentMutation(equipment?.id ?? 0);
 
-  if (!isOpen) return null;
-
   const departments = deptsPage?.items ?? [];
   const maintenanceDepartments = maintenanceDeptsPage?.items ?? [];
 
@@ -110,44 +120,55 @@ export function EquipmentModal({ equipment, isOpen, onClose }: Props) {
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h2>{isEdit ? `Chỉnh sửa thiết bị: ${equipment.code}` : "Thêm Thiết Bị Mới"}</h2>
-        <p className="section-lead">
-          Nhập thông tin cơ bản của thiết bị để quản lý và tạo ticket bảo trì.
-        </p>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>
+            {isEdit ? `Chỉnh sửa thiết bị: ${equipment.code}` : "Thêm Thiết Bị Mới"}
+          </DialogTitle>
+          <DialogDescription>
+            Nhập thông tin cơ bản của thiết bị để quản lý và tạo ticket bảo trì.
+          </DialogDescription>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="stack spaced">
-          <label className="field">
-            <span>Mã thiết bị</span>
-            <input
+        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="eq-code">
+              Mã thiết bị <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="eq-code"
               type="text"
-              className="input"
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="Ví dụ: LAP-IT-001"
               required
-              disabled={isEdit || isPending} // Không cho phép sửa mã thiết bị khi cập nhật
+              disabled={isEdit || isPending}
             />
-          </label>
+          </div>
 
-          <label className="field">
-            <span>Tên thiết bị</span>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="eq-name">
+              Tên thiết bị <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="eq-name"
               type="text"
-              className="input"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ví dụ: Laptop Dell Vostro 5402"
               required
               disabled={isPending}
             />
-          </label>
+          </div>
 
-          <label className="field">
-            <span>Phòng ban sở hữu</span>
+          <div className="space-y-1.5">
+            <Label htmlFor="eq-dept">
+              Phòng ban sở hữu <span className="text-destructive">*</span>
+            </Label>
             <select
-              className="select"
+              id="eq-dept"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               value={departmentId}
               onChange={(e) => setDepartmentId(e.target.value ? Number(e.target.value) : "")}
               required
@@ -160,12 +181,13 @@ export function EquipmentModal({ equipment, isOpen, onClose }: Props) {
                 </option>
               ))}
             </select>
-          </label>
+          </div>
 
-          <label className="field">
-            <span>Phòng ban bảo trì (Tùy chọn)</span>
+          <div className="space-y-1.5">
+            <Label htmlFor="eq-maint-dept">Phòng ban bảo trì (Tùy chọn)</Label>
             <select
-              className="select"
+              id="eq-maint-dept"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               value={maintenanceDepartmentId}
               onChange={(e) =>
                 setMaintenanceDepartmentId(e.target.value ? Number(e.target.value) : "")
@@ -179,12 +201,13 @@ export function EquipmentModal({ equipment, isOpen, onClose }: Props) {
                 </option>
               ))}
             </select>
-          </label>
+          </div>
 
-          <label className="field">
-            <span>Trạng thái</span>
+          <div className="space-y-1.5">
+            <Label htmlFor="eq-status">Trạng thái</Label>
             <select
-              className="select"
+              id="eq-status"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               value={status}
               onChange={(e) => setStatus(e.target.value as EquipmentStatus)}
               disabled={isPending}
@@ -198,46 +221,41 @@ export function EquipmentModal({ equipment, isOpen, onClose }: Props) {
                 </option>
               )}
             </select>
-          </label>
+          </div>
 
-          <label className="field">
-            <span>Ngày mua</span>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="eq-date">Ngày mua</Label>
+            <Input
+              id="eq-date"
               type="date"
-              className="input"
               value={purchasedDate}
               onChange={(e) => setPurchasedDate(e.target.value)}
               disabled={isPending}
             />
-          </label>
+          </div>
 
-          <label className="field">
-            <span>Mô tả chi tiết</span>
-            <textarea
-              className="textarea"
+          <div className="space-y-1.5">
+            <Label htmlFor="eq-desc">Mô tả chi tiết</Label>
+            <Textarea
+              id="eq-desc"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Mô tả cấu hình, vị trí đặt, v.v."
               rows={3}
               disabled={isPending}
             />
-          </label>
-
-          <div className="button-row spaced">
-            <button type="submit" className="button primary" disabled={isPending}>
-              {isPending ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Tạo mới"}
-            </button>
-            <button
-              type="button"
-              className="button secondary"
-              onClick={onClose}
-              disabled={isPending}
-            >
-              Hủy
-            </button>
           </div>
+
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
+              Hủy
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Tạo mới"}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
