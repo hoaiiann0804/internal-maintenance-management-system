@@ -158,7 +158,7 @@ export function EquipmentPage() {
                 >
                   <option value="">Tất cả phòng ban</option>
                   {departments.map((d) => (
-                    <option key={d.id} value={d.id}>
+                    <option key={d.id} value={d.id} className="bg-background text-foreground">
                       {d.name}
                     </option>
                   ))}
@@ -174,11 +174,21 @@ export function EquipmentPage() {
                     setPage(1);
                   }}
                 >
-                  <option value="">Tất cả trạng thái</option>
-                  <option value="Active">Hoạt động (Active)</option>
-                  <option value="Inactive">Ngưng hoạt động (Inactive)</option>
-                  <option value="UnderMaintenance">Đang bảo trì (UnderMaintenance)</option>
-                  <option value="Retired">Thanh lý (Retired)</option>
+                  <option value="" className="bg-background text-foreground">
+                    Tất cả trạng thái
+                  </option>
+                  <option value="Active" className="bg-background text-foreground">
+                    Hoạt động (Active)
+                  </option>
+                  <option value="Inactive" className="bg-background text-foreground">
+                    Ngưng hoạt động (Inactive)
+                  </option>
+                  <option value="UnderMaintenance" className="bg-background text-foreground">
+                    Đang bảo trì (UnderMaintenance)
+                  </option>
+                  <option value="Retired" className="bg-background text-foreground">
+                    Thanh lý (Retired)
+                  </option>
                 </select>
               </div>
             </div>

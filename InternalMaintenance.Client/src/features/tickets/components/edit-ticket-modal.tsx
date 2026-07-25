@@ -100,7 +100,7 @@ export function EditTicketModal({ ticket, isOpen, onClose }: Props) {
               onChange={(e) => setPriority(e.target.value as TicketPriority)}
             >
               {PRIORITIES.map((p) => (
-                <option key={p} value={p}>
+                <option key={p} value={p} className="bg-background text-foreground">
                   {p}
                 </option>
               ))}

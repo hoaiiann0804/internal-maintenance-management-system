@@ -177,11 +177,21 @@ export function UsersPage() {
                     setPage(1);
                   }}
                 >
-                  <option value="">Tất cả vai trò</option>
-                  <option value="Admin">Admin</option>
-                  <option value="Manager">Manager</option>
-                  <option value="Staff">Staff</option>
-                  <option value="Technician">Technician</option>
+                  <option value="" className="bg-background text-foreground">
+                    Tất cả vai trò
+                  </option>
+                  <option value="Admin" className="bg-background text-foreground">
+                    Admin
+                  </option>
+                  <option value="Manager" className="bg-background text-foreground">
+                    Manager
+                  </option>
+                  <option value="Staff" className="bg-background text-foreground">
+                    Staff
+                  </option>
+                  <option value="Technician" className="bg-background text-foreground">
+                    Technician
+                  </option>
                 </select>
               </label>
             </div>
