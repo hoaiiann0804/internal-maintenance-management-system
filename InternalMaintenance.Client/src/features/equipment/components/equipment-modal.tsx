@@ -121,7 +121,7 @@ export function EquipmentModal({ equipment, isOpen, onClose }: Props) {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEdit ? `Chỉnh sửa thiết bị: ${equipment.code}` : "Thêm Thiết Bị Mới"}
