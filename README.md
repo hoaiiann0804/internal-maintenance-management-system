@@ -124,23 +124,70 @@ Overview of maintenance tickets, KPI summaries, and equipment status.
 
 ### 2. Ticket Management
 List of maintenance tickets with color-coded status badges and priority indicators.
-*(Replace this line with your ticket list screenshot, e.g., `![Tickets List](./InternalMaintenance.Client/public/screenshots/tickets-list.png)`)*
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment1.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment2.png)
+
 
 ### 3. Ticket Details & Workflow
 Detailed view of a ticket showing status transitions, assignee, and discussion thread.
-*(Replace this line with your ticket detail screenshot, e.g., `![Ticket Details](./InternalMaintenance.Client/public/screenshots/ticket-detail.png)`)*
 
-### 4. File Attachments
-File upload zone and preview modal for images, videos, and PDF documents attached to a ticket.
-*(Replace this line with your attachments screenshot, e.g., `![Attachments](./InternalMaintenance.Client/public/screenshots/attachments.png)`)*
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment3.png)
 
-### 5. Equipment Management
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment4.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment5.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment6.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment7.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment8.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment9.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment10.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment11.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment12.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment13.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment14.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment15.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment16.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment17.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment18.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment19.png)
+
+
+### 4. Equipment Management
 Asset tracking interface with department assignment and active/maintenance status toggle.
-*(Replace this line with your equipment list screenshot, e.g., `![Equipment Management](./InternalMaintenance.Client/public/screenshots/equipment-list.png)`)*
+![Equipment Management](./InternalMaintenance.Client/public/screenshots/equipment19.png)
 
-### 6. User Management & Access Control
+![Equipment Management](./InternalMaintenance.Client/public/screenshots/equipment20.png)
+
+![Equipment Management](./InternalMaintenance.Client/public/screenshots/equipment21.png)
+
+
+### 5. User Management & Access Control
 Admin directory for managing users, roles (Admin/Manager/Staff/Technician), and department assignments.
-*(Replace this line with your user management screenshot, e.g., `![User Management](./InternalMaintenance.Client/public/screenshots/user-management.png)`)*
+![User Management](./InternalMaintenance.Client/public/screenshots/user1.png)
+
+![User Management](./InternalMaintenance.Client/public/screenshots/user2.png)
+
+![User Management](./InternalMaintenance.Client/public/screenshots/user3.png)
+
+![User Management](./InternalMaintenance.Client/public/screenshots/user4.png)
+
+![User Management](./InternalMaintenance.Client/public/screenshots/user5.png)
+
 
 ## Business Workflow
 
