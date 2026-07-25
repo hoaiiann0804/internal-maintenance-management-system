@@ -38,7 +38,7 @@ The repository currently contains:
 - a React + Vite frontend
 - JWT authentication with refresh tokens
 - role-based access control
-- department, equipment, user, and maintenance ticket modules
+- department, equipment, user, ticket, ticket attachment, and dashboard modules
 - seeded demo data for local development
 
 The frontend currently includes:
@@ -46,8 +46,11 @@ The frontend currently includes:
 - `Login`
 - `Dashboard`
 - `Tickets`
+- `Equipment`
+- `Users`
+- `Departments`
 
-The UI is prepared to grow into a fuller operational console, with API hooks already organized for auth, tickets, equipment, users, and related flows.
+The UI is built as a complete operational console with API hooks for authentication, ticket lifecycle management, equipment tracking, department administration, file attachments, and analytics.
 
 ## Key Features
 
@@ -73,6 +76,7 @@ The UI is prepared to grow into a fuller operational console, with API hooks alr
 - create, update, read, delete departments
 - unique department name protection
 - dependency checks before deletion
+- `IsMaintenanceTeam` flag to mark specialized maintenance departments
 
 ### Equipment Management
 
@@ -90,6 +94,26 @@ The UI is prepared to grow into a fuller operational console, with API hooks alr
 - add comments
 - track status history
 - store resolution notes and timestamps
+
+### Ticket Attachments & Storage
+
+- presigned file upload flow (S3 / Local storage compatible)
+- list attachments per ticket
+- preview modal for images, videos, and PDF documents
+- secure download link generation
+- attachment deletion with role/owner permissions
+
+### Dashboard & Analytics
+
+- real-time KPI overview (tickets by status, active vs maintenance equipment, technician and department metrics)
+- interactive status and priority distribution charts
+- department equipment breakdown
+- role-scoped data filtering
+
+### Theme & UI Polish
+
+- Light and Dark mode toggle with system preference support
+- responsive tables, modal dialogs, and status badges
 
 ## Business Workflow
 
@@ -231,6 +255,19 @@ Supported query parameters for `GET /api/equipment`:
 - `departmentId`
 - `page`
 - `pageSize`
+
+### Dashboard
+
+- `GET /api/dashboard/summary`
+- `GET /api/dashboard/charts`
+
+### Ticket Attachments
+
+- `POST /api/tickets/{ticketId}/attachments/presign`
+- `POST /api/tickets/{ticketId}/attachments/confirm`
+- `GET /api/tickets/{ticketId}/attachments`
+- `GET /api/tickets/{ticketId}/attachments/{attachmentId}/download-url`
+- `DELETE /api/tickets/{ticketId}/attachments/{attachmentId}`
 
 ### Maintenance Tickets
 
@@ -414,23 +451,44 @@ Useful scripts in `InternalMaintenance.Client/package.json`:
 - A resolution note is required before a ticket can be resolved
 - Ticket visibility depends on role and department
 
+## Feature Implementation Status
+
+| Feature / Module | Status | Backend (.NET) | Frontend (React) | Description |
+| --- | --- | --- | --- | --- |
+| **JWT Auth & Refresh Token** | ✅ Completed | Yes | Yes | Login, logout, token rotation, current user lookup |
+| **Role-Based Access (RBAC)** | ✅ Completed | Yes | Yes | Admin, Manager, Staff, Technician authorization |
+| **User Management** | ✅ Completed | Yes | Yes | User directory, active status toggle, reset password |
+| **Department Management** | ✅ Completed | Yes | Yes | Department CRUD, `IsMaintenanceTeam` flag |
+| **Equipment Management** | ✅ Completed | Yes | Yes | Asset tracking, department link, immutable code |
+| **Maintenance Tickets** | ✅ Completed | Yes | Yes | Create ticket, technician assignment, status workflow |
+| **Ticket Comments & History** | ✅ Completed | Yes | Yes | Discussion thread, automated status audit log |
+| **Ticket Attachments & Files** | ✅ Completed | Yes | Yes | Presigned upload, image/video/PDF preview, deletion |
+| **Dashboard & Analytics** | ✅ Completed | Yes | Yes | Summary KPIs, status & priority charts, dept equipment stats |
+| **Dark / Light Theme** | ✅ Completed | N/A | Yes | Theme mode switcher with persistent UI state |
+| **Equipment QR Code** | 🔳 Pending | No | No | Generate & scan QR codes for rapid asset lookup |
+| **Email Notifications** | 🔳 Pending | No | No | SMTP/SendGrid alerts on ticket lifecycle events |
+| **Preventive Maintenance** | 🔳 Pending | No | No | Scheduled recurring maintenance tasks & automatic tickets |
+| **SLA Tracking & Alerts** | 🔳 Pending | No | No | Target resolution times & SLA breach alerts |
+| **Data Export & PDF/Excel** | 🔳 Pending | No | No | Export tickets and asset history reports to Excel/PDF |
+| **Multi-building / Location** | 🔳 Pending | No | No | Location hierarchy (Building -> Floor -> Room) |
+| **Multi-tenancy & SaaS** | 🔳 Pending | No | No | Organization isolation & multi-tenant billing |
+
 ## Roadmap
 
-### Next Improvements
+### Next Improvements (Short-Term)
 
-- QR code for equipment
-- attachment upload for tickets
-- email notification
-- preventive maintenance scheduling
-- SLA dashboard
-- richer analytics
+- [ ] **Equipment QR Code**: Generate QR codes for equipment items and enable camera scanning on mobile web.
+- [ ] **Email Notification**: Integrate email service to alert users on ticket assignment, comment, or status resolution.
+- [ ] **Preventive Maintenance Scheduling**: Periodic asset inspection plans with automatic recurring ticket generation.
+- [ ] **SLA Dashboard & Alerts**: Target resolution SLA metrics, overdue ticket highlights, and escalation rules.
+- [ ] **Data Export**: Export maintenance history and asset inventories to CSV, Excel, or PDF format.
 
 ### Longer-Term Ideas
 
-- multi-building support
-- multi-tenant support
-- subscription model
-- reporting and forecasting
+- [ ] **Multi-Building / Location Hierarchy**: Support complex office physical locations (Campus -> Building -> Floor -> Room).
+- [ ] **Multi-Tenant Architecture**: Data isolation for multiple organizations / companies within a single platform instance.
+- [ ] **Subscription & Billing Model**: Usage tier management and invoicing system.
+- [ ] **Predictive Maintenance & Forecasting**: Maintenance history analysis to forecast equipment failure rates.
 
 ## Contributing
 
