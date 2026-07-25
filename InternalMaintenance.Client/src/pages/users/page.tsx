@@ -1,18 +1,32 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import axios from "axios";
-import { Badge, EmptyState, Panel, Spinner, UserProfile } from "../../shared/ui";
-import { appRoutes } from "../../shared/config/routes";
 import { useAuthStore } from "../../features/auth/model/auth-store";
-import { logout } from "../../shared/api/auth";
 import { useUsersQuery } from "../../features/tickets/api/use-users-query";
 import { useUpdateUserActiveMutation } from "../../features/users/api/use-user-mutations";
 import { UserModal } from "../../features/users/components/user-modal";
 import { ResetPasswordModal } from "../../features/users/components/reset-password-modal";
-import { ChangePasswordModal } from "../../features/auth/components/change-password-modal";
 import type { User } from "../../entities/user/model/types";
 import type { RoleName } from "../../entities/auth/model/types";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Search,
+  UserPlus,
+  Pencil,
+  KeyRound,
+  Lock,
+  Unlock,
+  ChevronLeft,
+  ChevronRight,
+  ShieldAlert,
+  Building2,
+  Clock,
+  Mail,
+} from "lucide-react";
 
 const formatDateTime = (value: string | null | undefined) => {
   if (!value) return "Chưa từng đăng nhập";
@@ -21,11 +35,17 @@ const formatDateTime = (value: string | null | undefined) => {
   );
 };
 
+function getInitials(name: string | undefined) {
+  if (!name) return "?";
+  const parts = name.trim().split(" ");
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.charAt(0).toUpperCase();
+}
+
 export function UsersPage() {
   const session = useAuthStore((state) => state.session);
-  const signOut = useAuthStore((state) => state.signOut);
-  const navigate = useNavigate();
-
   const role = session?.user.roleName;
   const isAdmin = role === "Admin";
 
@@ -37,7 +57,6 @@ export function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
-  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   const {
     data: usersPage,
@@ -51,18 +70,6 @@ export function UsersPage() {
   });
 
   const toggleActiveMutation = useUpdateUserActiveMutation();
-
-  const handleLogout = async (): Promise<void> => {
-    const refreshToken = session?.refreshToken;
-    try {
-      if (refreshToken) {
-        await logout(refreshToken);
-      }
-    } finally {
-      signOut();
-      navigate(appRoutes.login);
-    }
-  };
 
   const handleToggleStatus = async (id: number, currentActive: boolean) => {
     const actionText = currentActive ? "khóa" : "kích hoạt";
@@ -84,93 +91,91 @@ export function UsersPage() {
   const usersList = usersPage?.items ?? [];
   const totalPages = usersPage?.totalPages ?? 1;
 
-  // Bảo vệ ở cả UI component
   if (!isAdmin) {
     return (
-      <div className="centered-content" style={{ height: "100vh" }}>
-        <EmptyState
-          title="Không có quyền truy cập"
-          description="Trang web này chỉ dành cho người quản trị hệ thống (Admin)."
-        />
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
+        <ShieldAlert className="h-12 w-12 text-destructive mb-3" />
+        <h2 className="text-lg font-bold text-foreground">Không có quyền truy cập</h2>
+        <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+          Trang web này chỉ dành cho người quản trị hệ thống (Admin).
+        </p>
       </div>
     );
   }
 
+  const getRoleBadge = (roleName: string) => {
+    switch (roleName) {
+      case "Admin":
+        return <Badge variant="default">{roleName}</Badge>;
+      case "Manager":
+        return <Badge variant="warning">{roleName}</Badge>;
+      case "Technician":
+        return <Badge variant="success">{roleName}</Badge>;
+      default:
+        return <Badge variant="secondary">{roleName}</Badge>;
+    }
+  };
+
   return (
-    <div className="dashboard">
-      <header className="topbar">
-        <div className="brand">
-          <div className="brand-mark">IM</div>
-          <div>
-            <strong>Management Console</strong>
-            <span>Nhân sự workspace</span>
-          </div>
+    <div className="space-y-6">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border rounded-2xl p-6 shadow-sm">
+        <div>
+          <span className="text-xs font-semibold text-primary uppercase tracking-wider">
+            Personnel
+          </span>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground mt-1">
+            Quản lý nhân viên
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Quản lý danh sách tài khoản, phân quyền vai trò và phòng ban trong hệ thống.
+          </p>
         </div>
+        <Button
+          onClick={() => {
+            setSelectedUser(null);
+            setIsUserModalOpen(true);
+          }}
+          className="gap-1.5 shrink-0"
+        >
+          <UserPlus className="h-4 w-4" />
+          <span>Thêm Nhân Viên</span>
+        </Button>
+      </div>
 
-        <nav className="tabs" aria-label="Modules">
-          <Link className="tab" to={appRoutes.dashboard}>
-            Dashboard
-          </Link>
-          <Link className="tab" to={appRoutes.tickets}>
-            Tickets
-          </Link>
-          <Link className="tab" to={appRoutes.equipment}>
-            Equipment
-          </Link>
-          <Link className="tab active" to={appRoutes.users}>
-            Users
-          </Link>
-          <Link className="tab" to={appRoutes.departments}>
-            Departments
-          </Link>
-        </nav>
-
-        <UserProfile
-          fullName={session?.user.fullName}
-          roleName={session?.user.roleName}
-          onLogout={handleLogout}
-          onChangePassword={() => setIsChangePasswordOpen(true)}
-        />
-      </header>
-
-      <div className="layout" style={{ gridTemplateColumns: "1fr" }}>
-        <main className="main-panel">
-          <Panel>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <span className="eyebrow">Personnel</span>
-                <h2>Quản lý danh sách nhân viên hệ thống</h2>
-              </div>
-              <button
-                type="button"
-                className="button primary"
-                onClick={() => {
-                  setSelectedUser(null);
-                  setIsUserModalOpen(true);
-                }}
-              >
-                + Thêm Nhân Viên
-              </button>
+      {/* Main Content Card */}
+      <Card>
+        <CardHeader className="pb-4 border-b">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <CardTitle className="text-base font-semibold">
+                Danh sách tài khoản hệ thống
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Hiển thị trang {page} / {totalPages} (Tổng cộng {usersPage?.totalItems ?? 0} nhân
+                viên)
+              </CardDescription>
             </div>
 
-            <div className="filter-grid" style={{ gridTemplateColumns: "3fr 1fr" }}>
-              <label className="field">
-                <span>Tìm kiếm nhân sự</span>
-                <input
-                  className="input"
+            {/* Filter Bar */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 min-w-0 md:w-auto">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  type="text"
                   value={search}
-                  placeholder="Tìm theo họ tên hoặc địa chỉ email..."
+                  placeholder="Tìm tên hoặc email..."
                   onChange={(e) => {
                     setSearch(e.target.value);
                     setPage(1);
                   }}
+                  className="pl-8 text-xs h-9"
                 />
-              </label>
+              </div>
 
-              <label className="field">
-                <span>Vai trò</span>
+              <div>
                 <select
-                  className="select"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   value={roleFilter}
                   onChange={(e) => {
                     setRoleFilter(e.target.value);
@@ -193,127 +198,166 @@ export function UsersPage() {
                     Technician
                   </option>
                 </select>
-              </label>
+              </div>
             </div>
+          </div>
+        </CardHeader>
 
-            <div className="table-wrap">
-              {isLoading ? (
-                <div className="centered-content" style={{ padding: "40px" }}>
-                  <Spinner />
-                </div>
-              ) : isError ? (
-                <EmptyState
-                  title="Đã xảy ra lỗi"
-                  description="Không thể tải danh sách nhân viên. Vui lòng thử lại sau."
-                />
-              ) : usersList.length > 0 ? (
-                <>
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>Họ và tên</th>
-                        <th>Địa chỉ Email</th>
-                        <th>Vai trò</th>
-                        <th>Phòng ban</th>
-                        <th>Trạng thái</th>
-                        <th>Lần đăng nhập cuối</th>
-                        <th style={{ textAlign: "right" }}>Thao tác</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {usersList.map((u) => (
-                        <tr key={u.id}>
-                          <td style={{ fontWeight: 800 }}>{u.fullName}</td>
-                          <td>{u.email}</td>
-                          <td>
-                            <Badge tone={u.roleName === "Admin" ? "primary" : "default"}>
-                              {u.roleName}
-                            </Badge>
-                          </td>
-                          <td>{u.departmentName || "Hệ thống"}</td>
-                          <td>
-                            <Badge tone={u.isActive ? "good" : "bad"}>
-                              {u.isActive ? "Đang hoạt động" : "Bị khóa"}
-                            </Badge>
-                          </td>
-                          <td>{formatDateTime(u.lastLoginAt)}</td>
-                          <td style={{ textAlign: "right" }}>
-                            <div
-                              style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}
-                            >
-                              <button
-                                type="button"
-                                className="button secondary"
-                                style={{ padding: "6px 10px", fontSize: "13px" }}
-                                onClick={() => {
-                                  setSelectedUser(u);
-                                  setIsUserModalOpen(true);
-                                }}
-                              >
-                                Sửa
-                              </button>
-                              <button
-                                type="button"
-                                className="button secondary"
-                                style={{ padding: "6px 10px", fontSize: "13px" }}
-                                onClick={() => {
-                                  setSelectedUser(u);
-                                  setIsResetOpen(true);
-                                }}
-                              >
-                                Reset Pass
-                              </button>
-                              <button
-                                type="button"
-                                className={u.isActive ? "button danger" : "button primary"}
-                                style={{ padding: "6px 10px", fontSize: "13px" }}
-                                onClick={() => handleToggleStatus(u.id, u.isActive)}
-                                disabled={toggleActiveMutation.isPending}
-                              >
-                                {u.isActive ? "Khóa" : "Kích hoạt"}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+        <CardContent className="p-0 overflow-x-auto">
+          {isLoading ? (
+            <div className="py-16 flex justify-center">
+              <div className="h-7 w-7 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+            </div>
+          ) : isError ? (
+            <div className="p-12 text-center text-xs text-destructive">
+              Đã xảy ra lỗi. Không thể tải danh sách nhân viên.
+            </div>
+          ) : usersList.length > 0 ? (
+            <>
+              <table className="w-full text-left text-xs">
+                <thead className="bg-muted/50 border-b text-muted-foreground uppercase text-[10px] font-semibold tracking-wider">
+                  <tr>
+                    <th className="p-3.5 pl-6">Họ và tên</th>
+                    <th className="p-3.5">Email</th>
+                    <th className="p-3.5">Vai trò</th>
+                    <th className="p-3.5">Phòng ban</th>
+                    <th className="p-3.5">Trạng thái</th>
+                    <th className="p-3.5">Lần đăng nhập cuối</th>
+                    <th className="p-3.5 pr-6 text-right">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {usersList.map((u) => (
+                    <tr key={u.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="p-3.5 pl-6">
+                        <div className="flex items-center gap-2.5">
+                          <Avatar className="h-8 w-8 text-xs shrink-0 border">
+                            <AvatarFallback className="font-semibold text-xs bg-primary/10 text-primary">
+                              {getInitials(u.fullName)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-semibold text-foreground">{u.fullName}</span>
+                        </div>
+                      </td>
+                      <td className="p-3.5 text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Mail className="h-3 w-3 shrink-0" />
+                          {u.email}
+                        </span>
+                      </td>
+                      <td className="p-3.5">{getRoleBadge(u.roleName)}</td>
+                      <td className="p-3.5 text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Building2 className="h-3 w-3 shrink-0" />
+                          {u.departmentName || "Hệ thống"}
+                        </span>
+                      </td>
+                      <td className="p-3.5">
+                        <Badge variant={u.isActive ? "success" : "destructive"}>
+                          {u.isActive ? "Đang hoạt động" : "Bị khóa"}
+                        </Badge>
+                      </td>
+                      <td className="p-3.5 text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3 shrink-0" />
+                          {formatDateTime(u.lastLoginAt)}
+                        </span>
+                      </td>
+                      <td className="p-3.5 pr-6 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedUser(u);
+                              setIsUserModalOpen(true);
+                            }}
+                            className="h-8 px-2 text-xs gap-1"
+                            title="Sửa thông tin"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">Sửa</span>
+                          </Button>
 
-                  <div
-                    className="button-row spaced"
-                    style={{ justifyContent: "center", marginTop: "20px" }}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedUser(u);
+                              setIsResetOpen(true);
+                            }}
+                            className="h-8 px-2 text-xs gap-1"
+                            title="Reset mật khẩu"
+                          >
+                            <KeyRound className="h-3.5 w-3.5 text-amber-500" />
+                            <span className="hidden sm:inline">Reset</span>
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleStatus(u.id, u.isActive)}
+                            disabled={toggleActiveMutation.isPending}
+                            className={`h-8 px-2 text-xs gap-1 ${
+                              u.isActive
+                                ? "text-destructive hover:text-destructive hover:bg-destructive/10"
+                                : "text-emerald-600 hover:text-emerald-600 hover:bg-emerald-500/10"
+                            }`}
+                            title={u.isActive ? "Khóa tài khoản" : "Kích hoạt tài khoản"}
+                          >
+                            {u.isActive ? (
+                              <Lock className="h-3.5 w-3.5" />
+                            ) : (
+                              <Unlock className="h-3.5 w-3.5" />
+                            )}
+                            <span className="hidden sm:inline">{u.isActive ? "Khóa" : "Mở"}</span>
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Pagination Controls */}
+              <div className="flex items-center justify-between p-4 border-t">
+                <p className="text-xs text-muted-foreground">
+                  Trang <strong className="text-foreground">{page}</strong> trên{" "}
+                  <strong className="text-foreground">{totalPages}</strong>
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page === 1}
+                    onClick={() => setPage((p) => p - 1)}
+                    className="h-8 gap-1 text-xs"
                   >
-                    <button
-                      type="button"
-                      className="button secondary"
-                      disabled={page === 1}
-                      onClick={() => setPage((p) => p - 1)}
-                    >
-                      Trước
-                    </button>
-                    <span style={{ alignSelf: "center", fontWeight: "bold" }}>
-                      Trang {page} / {totalPages}
-                    </span>
-                    <button
-                      type="button"
-                      className="button secondary"
-                      disabled={page === totalPages}
-                      onClick={() => setPage((p) => p + 1)}
-                    >
-                      Sau
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <EmptyState
-                  title="Không tìm thấy nhân viên"
-                  description="Hãy thử đổi từ khóa tìm kiếm hoặc tạo nhân viên mới."
-                />
-              )}
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                    <span>Trước</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page === totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                    className="h-8 gap-1 text-xs"
+                  >
+                    <span>Sau</span>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="py-16 text-center text-xs text-muted-foreground space-y-1">
+              <p className="font-semibold text-foreground">Không tìm thấy nhân viên</p>
+              <p>Hãy thử thay đổi điều kiện tìm kiếm hoặc thêm nhân viên mới.</p>
             </div>
-          </Panel>
-        </main>
-      </div>
+          )}
+        </CardContent>
+      </Card>
 
       <UserModal
         user={selectedUser}
@@ -331,11 +375,6 @@ export function UsersPage() {
           setIsResetOpen(false);
           setSelectedUser(null);
         }}
-      />
-
-      <ChangePasswordModal
-        isOpen={isChangePasswordOpen}
-        onClose={() => setIsChangePasswordOpen(false)}
       />
     </div>
   );

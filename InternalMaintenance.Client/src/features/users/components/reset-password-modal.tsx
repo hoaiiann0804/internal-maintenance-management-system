@@ -3,6 +3,17 @@ import { toast } from "sonner";
 import axios from "axios";
 import { useResetUserPasswordMutation } from "../api/use-user-mutations";
 import type { User } from "../../../entities/user/model/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type Props = {
   user: User | null;
@@ -23,7 +34,7 @@ export function ResetPasswordModal({ user, isOpen, onClose }: Props) {
 
   const resetMutation = useResetUserPasswordMutation(user?.id ?? 0);
 
-  if (!isOpen || !user) return null;
+  if (!user) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,46 +61,50 @@ export function ResetPasswordModal({ user, isOpen, onClose }: Props) {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h2>Đặt lại mật khẩu</h2>
-        <p className="section-lead">
-          Nhập mật khẩu tạm thời mới cho tài khoản{" "}
-          <strong>
-            {user.fullName} ({user.email})
-          </strong>
-          .
-        </p>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Đặt lại mật khẩu</DialogTitle>
+          <DialogDescription>
+            Nhập mật khẩu tạm thời mới cho tài khoản{" "}
+            <strong className="text-foreground font-semibold">
+              {user.fullName} ({user.email})
+            </strong>
+            .
+          </DialogDescription>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="stack spaced">
-          <label className="field">
-            <span>Mật khẩu tạm thời mới</span>
-            <input
+        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="reset-temp-pass">
+              Mật khẩu tạm thời mới <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="reset-temp-pass"
               type="password"
-              className="input"
               value={temporaryPassword}
               onChange={(e) => setTemporaryPassword(e.target.value)}
               placeholder="Nhập mật khẩu từ 8 ký tự trở lên"
               required
               disabled={resetMutation.isPending}
             />
-          </label>
+          </div>
 
-          <div className="button-row spaced">
-            <button type="submit" className="button primary" disabled={resetMutation.isPending}>
-              {resetMutation.isPending ? "Đang xử lý..." : "Reset mật khẩu"}
-            </button>
-            <button
+          <DialogFooter className="pt-4">
+            <Button
               type="button"
-              className="button secondary"
+              variant="outline"
               onClick={onClose}
               disabled={resetMutation.isPending}
             >
               Hủy
-            </button>
-          </div>
+            </Button>
+            <Button type="submit" disabled={resetMutation.isPending}>
+              {resetMutation.isPending ? "Đang xử lý..." : "Reset mật khẩu"}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

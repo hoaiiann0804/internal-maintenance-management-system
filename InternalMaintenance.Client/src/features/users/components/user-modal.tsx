@@ -4,6 +4,17 @@ import axios from "axios";
 import { useCreateUserMutation, useUpdateUserMutation } from "../api/use-user-mutations";
 import { useDepartmentsQuery } from "../../equipment/api/use-departments-query";
 import type { User } from "../../../entities/user/model/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type Props = {
   user: User | null; // null if creating
@@ -45,11 +56,10 @@ export function UserModal({ user, isOpen, onClose }: Props) {
   const createMutation = useCreateUserMutation();
   const updateMutation = useUpdateUserMutation(user?.id ?? 0);
 
-  if (!isOpen) return null;
-
   const departments = deptsPage?.items ?? [];
   const availableRoles =
     isEdit && user?.roleName === "Admin" ? ROLES : ROLES.filter((role) => role.name !== "Admin");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim() || roleId === "") {
@@ -94,59 +104,72 @@ export function UserModal({ user, isOpen, onClose }: Props) {
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h2>{isEdit ? `Sửa thông tin: ${user.email}` : "Thêm Nhân Viên Mới"}</h2>
-        <p className="section-lead">
-          Nhập các thông tin cơ bản để cấu hình tài khoản truy cập hệ thống.
-        </p>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>
+            {isEdit ? `Sửa thông tin: ${user.email}` : "Thêm Nhân Viên Mới"}
+          </DialogTitle>
+          <DialogDescription>
+            Nhập các thông tin cơ bản để cấu hình tài khoản truy cập hệ thống.
+          </DialogDescription>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="stack spaced">
-          <label className="field">
-            <span>Họ và tên</span>
-            <input
+        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="user-fullname">
+              Họ và tên <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="user-fullname"
               type="text"
-              className="input"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Ví dụ: Nguyễn Văn A"
               required
               disabled={isPending}
             />
-          </label>
+          </div>
 
-          <label className="field">
-            <span>Địa chỉ Email</span>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="user-email">
+              Địa chỉ Email <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="user-email"
               type="email"
-              className="input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="email@example.com"
               required
-              disabled={isEdit || isPending} // Không được chỉnh sửa email sau khi tạo
+              disabled={isEdit || isPending}
             />
-          </label>
+          </div>
 
           {!isEdit && (
-            <label className="field">
-              <span>Mật khẩu tạm thời</span>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="user-temp-pass">
+                Mật khẩu tạm thời <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="user-temp-pass"
                 type="password"
-                className="input"
                 value={temporaryPassword}
                 onChange={(e) => setTemporaryPassword(e.target.value)}
                 placeholder="Ít nhất 8 ký tự"
                 required
                 disabled={isPending}
               />
-            </label>
+            </div>
           )}
 
-          <label className="field">
-            <span>Vai trò (Role)</span>
+          <div className="space-y-1.5">
+            <Label htmlFor="user-role">
+              Vai trò (Role) <span className="text-destructive">*</span>
+            </Label>
             <select
-              className="select"
+              id="user-role"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               value={roleId}
               onChange={(e) => setRoleId(e.target.value ? Number(e.target.value) : "")}
               required
@@ -161,12 +184,13 @@ export function UserModal({ user, isOpen, onClose }: Props) {
                 </option>
               ))}
             </select>
-          </label>
+          </div>
 
-          <label className="field">
-            <span>Phòng ban</span>
+          <div className="space-y-1.5">
+            <Label htmlFor="user-dept">Phòng ban</Label>
             <select
-              className="select"
+              id="user-dept"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               value={departmentId}
               onChange={(e) => setDepartmentId(e.target.value ? Number(e.target.value) : "")}
               disabled={isDeptsLoading || isPending}
@@ -180,23 +204,18 @@ export function UserModal({ user, isOpen, onClose }: Props) {
                 </option>
               ))}
             </select>
-          </label>
-
-          <div className="button-row spaced">
-            <button type="submit" className="button primary" disabled={isPending}>
-              {isPending ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Tạo mới"}
-            </button>
-            <button
-              type="button"
-              className="button secondary"
-              onClick={onClose}
-              disabled={isPending}
-            >
-              Hủy
-            </button>
           </div>
+
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
+              Hủy
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Tạo mới"}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
