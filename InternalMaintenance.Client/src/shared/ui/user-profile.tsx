@@ -31,18 +31,25 @@ export function UserProfile({ fullName, roleName, onLogout, onChangePassword }: 
   return (
     <div className="flex items-center gap-3">
       <ThemeToggle />
-      
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative flex items-center gap-3 px-2 py-1.5 h-auto hover:bg-accent rounded-full sm:rounded-lg">
+          <Button
+            variant="ghost"
+            className="relative flex items-center gap-3 px-2 py-1.5 h-auto hover:bg-accent rounded-full sm:rounded-lg"
+          >
             <Avatar className="h-8 w-8 bg-primary/10 text-primary border border-primary/20">
               <AvatarFallback className="font-semibold text-xs text-primary bg-primary/10">
                 {getInitials(fullName)}
               </AvatarFallback>
             </Avatar>
             <div className="hidden sm:flex flex-col text-left">
-              <span className="text-xs font-semibold text-foreground leading-tight">{fullName ?? "Guest"}</span>
-              <span className="text-[10px] text-muted-foreground leading-tight">{roleName ?? "User"}</span>
+              <span className="text-xs font-semibold text-foreground leading-tight">
+                {fullName ?? "Guest"}
+              </span>
+              <span className="text-[10px] text-muted-foreground leading-tight">
+                {roleName ?? "User"}
+              </span>
             </div>
           </Button>
         </DropdownMenuTrigger>
@@ -59,7 +66,10 @@ export function UserProfile({ fullName, roleName, onLogout, onChangePassword }: 
             <span>Đổi mật khẩu</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={onLogout} className="cursor-pointer text-destructive focus:text-destructive">
+          <DropdownMenuItem
+            onClick={onLogout}
+            className="cursor-pointer text-destructive focus:text-destructive"
+          >
             <LogOut className="mr-2 h-4 w-4" />
             <span>Đăng xuất</span>
           </DropdownMenuItem>

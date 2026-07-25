@@ -60,8 +60,12 @@ export function AppLayout() {
                 IM
               </div>
               <div className="hidden md:flex flex-col">
-                <span className="text-sm font-bold leading-none tracking-tight">Management Console</span>
-                <span className="text-[10px] text-muted-foreground leading-none mt-1">Facility Maintenance</span>
+                <span className="text-sm font-bold leading-none tracking-tight">
+                  Management Console
+                </span>
+                <span className="text-[10px] text-muted-foreground leading-none mt-1">
+                  Facility Maintenance
+                </span>
               </div>
             </Link>
           </div>
@@ -70,7 +74,9 @@ export function AppLayout() {
           <nav className="flex items-center space-x-1 sm:space-x-2">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname === item.to || (item.to !== appRoutes.dashboard && location.pathname.startsWith(item.to));
+              const isActive =
+                location.pathname === item.to ||
+                (item.to !== appRoutes.dashboard && location.pathname.startsWith(item.to));
               return (
                 <Link
                   key={item.to}
@@ -79,10 +85,12 @@ export function AppLayout() {
                     "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all relative",
                     isActive
                       ? "text-primary bg-primary/10 font-semibold"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent",
                   )}
                 >
-                  <Icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")} />
+                  <Icon
+                    className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")}
+                  />
                   <span className="hidden sm:inline">{item.label}</span>
                 </Link>
               );

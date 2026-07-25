@@ -32,7 +32,10 @@ export function Panel({ className = "", children }: PanelProps) {
 }
 
 export function Badge({ tone = "default", children }: BadgeProps) {
-  const variantMap: Record<string, "default" | "secondary" | "destructive" | "outline" | "success" | "warning"> = {
+  const variantMap: Record<
+    string,
+    "default" | "secondary" | "destructive" | "outline" | "success" | "warning"
+  > = {
     default: "secondary",
     primary: "default",
     good: "success",
@@ -45,10 +48,14 @@ export function Badge({ tone = "default", children }: BadgeProps) {
 
 export function StatCard({ label, value, note, icon, className }: StatCardProps) {
   return (
-    <Card className={cn("overflow-hidden border shadow-sm transition-all hover:shadow-md", className)}>
+    <Card
+      className={cn("overflow-hidden border shadow-sm transition-all hover:shadow-md", className)}
+    >
       <CardContent className="p-5">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {label}
+          </p>
           {icon && <div className="p-2 rounded-lg bg-primary/10 text-primary">{icon}</div>}
         </div>
         <div className="mt-2 text-2xl font-bold tracking-tight text-foreground">{value}</div>

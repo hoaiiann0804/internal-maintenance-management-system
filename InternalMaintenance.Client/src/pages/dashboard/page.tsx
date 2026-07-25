@@ -78,8 +78,12 @@ export function DashboardPage() {
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border rounded-2xl p-6 shadow-sm">
         <div>
-          <span className="text-xs font-semibold text-primary uppercase tracking-wider">Overview</span>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground mt-1">Dashboard overview</h1>
+          <span className="text-xs font-semibold text-primary uppercase tracking-wider">
+            Overview
+          </span>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground mt-1">
+            Dashboard overview
+          </h1>
           <p className="text-xs text-muted-foreground mt-1">
             Tổng quan dữ liệu hệ thống quản lý bảo trì nội bộ — dữ liệu thời gian thực.
           </p>
@@ -101,7 +105,11 @@ export function DashboardPage() {
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase">Open Tickets</p>
               <h3 className="text-2xl font-bold mt-1">
-                {isSummaryLoading ? <span className="text-muted text-base">...</span> : (summary?.openTickets ?? 0)}
+                {isSummaryLoading ? (
+                  <span className="text-muted text-base">...</span>
+                ) : (
+                  (summary?.openTickets ?? 0)
+                )}
               </h3>
               <p className="text-[11px] text-muted-foreground mt-1">Yêu cầu chưa hoàn thành</p>
             </div>
@@ -114,9 +122,15 @@ export function DashboardPage() {
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase">Active Equipment</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase">
+                Active Equipment
+              </p>
               <h3 className="text-2xl font-bold mt-1">
-                {isSummaryLoading ? <span className="text-muted text-base">...</span> : (summary?.activeEquipment ?? 0)}
+                {isSummaryLoading ? (
+                  <span className="text-muted text-base">...</span>
+                ) : (
+                  (summary?.activeEquipment ?? 0)
+                )}
               </h3>
               <p className="text-[11px] text-muted-foreground mt-1">Thiết bị đang hoạt động</p>
             </div>
@@ -131,7 +145,11 @@ export function DashboardPage() {
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase">Technicians</p>
               <h3 className="text-2xl font-bold mt-1">
-                {isSummaryLoading ? <span className="text-muted text-base">...</span> : (summary?.totalTechnicians ?? 0)}
+                {isSummaryLoading ? (
+                  <span className="text-muted text-base">...</span>
+                ) : (
+                  (summary?.totalTechnicians ?? 0)
+                )}
               </h3>
               <p className="text-[11px] text-muted-foreground mt-1">Kỹ thuật viên phụ trách</p>
             </div>
@@ -146,7 +164,11 @@ export function DashboardPage() {
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase">Departments</p>
               <h3 className="text-2xl font-bold mt-1">
-                {isSummaryLoading ? <span className="text-muted text-base">...</span> : (summary?.totalDepartments ?? 0)}
+                {isSummaryLoading ? (
+                  <span className="text-muted text-base">...</span>
+                ) : (
+                  (summary?.totalDepartments ?? 0)
+                )}
               </h3>
               <p className="text-[11px] text-muted-foreground mt-1">Phòng ban sử dụng</p>
             </div>
@@ -162,7 +184,9 @@ export function DashboardPage() {
         <Card className="flex flex-col">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold">Tickets theo trạng thái</CardTitle>
-            <CardDescription className="text-xs">Phân bổ các yêu cầu bảo trì theo tiến độ xử lý</CardDescription>
+            <CardDescription className="text-xs">
+              Phân bổ các yêu cầu bảo trì theo tiến độ xử lý
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 min-h-[280px]">
             {isChartsLoading ? (
@@ -170,9 +194,13 @@ export function DashboardPage() {
                 <div className="h-6 w-6 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
               </div>
             ) : !charts ? (
-              <p className="text-xs text-destructive text-center py-8">Không thể tải dữ liệu biểu đồ.</p>
+              <p className="text-xs text-destructive text-center py-8">
+                Không thể tải dữ liệu biểu đồ.
+              </p>
             ) : charts.ticketsByStatus.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-xs text-muted-foreground">Chưa có dữ liệu ticket</div>
+              <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+                Chưa có dữ liệu ticket
+              </div>
             ) : (
               <div className="h-[260px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
@@ -186,14 +214,23 @@ export function DashboardPage() {
                       innerRadius={50}
                       outerRadius={85}
                       paddingAngle={4}
-                      label={({ name, percent }) => `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`}
+                      label={({ name, percent }) =>
+                        `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
+                      }
                     >
                       {charts.ticketsByStatus.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={CHART_COLORS[index % CHART_COLORS.length]}
+                        />
                       ))}
                     </Pie>
                     <Tooltip
-                      contentStyle={{ backgroundColor: "var(--background)", borderRadius: "8px", borderColor: "var(--border)" }}
+                      contentStyle={{
+                        backgroundColor: "var(--background)",
+                        borderRadius: "8px",
+                        borderColor: "var(--border)",
+                      }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -205,7 +242,9 @@ export function DashboardPage() {
         <Card className="flex flex-col">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold">Thiết bị theo phòng ban</CardTitle>
-            <CardDescription className="text-xs">Số lượng thiết bị phân bổ theo các phòng ban</CardDescription>
+            <CardDescription className="text-xs">
+              Số lượng thiết bị phân bổ theo các phòng ban
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 min-h-[280px]">
             {isChartsLoading ? (
@@ -213,18 +252,29 @@ export function DashboardPage() {
                 <div className="h-6 w-6 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
               </div>
             ) : !charts ? (
-              <p className="text-xs text-destructive text-center py-8">Không thể tải dữ liệu biểu đồ.</p>
+              <p className="text-xs text-destructive text-center py-8">
+                Không thể tải dữ liệu biểu đồ.
+              </p>
             ) : charts.equipmentByDepartment.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-xs text-muted-foreground">Chưa có dữ liệu thiết bị</div>
+              <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+                Chưa có dữ liệu thiết bị
+              </div>
             ) : (
               <div className="h-[260px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={charts.equipmentByDepartment} margin={{ top: 20, right: 20, left: -10, bottom: 5 }}>
+                  <BarChart
+                    data={charts.equipmentByDepartment}
+                    margin={{ top: 20, right: 20, left: -10, bottom: 5 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                     <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                     <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: "var(--background)", borderRadius: "8px", borderColor: "var(--border)" }}
+                      contentStyle={{
+                        backgroundColor: "var(--background)",
+                        borderRadius: "8px",
+                        borderColor: "var(--border)",
+                      }}
                     />
                     <Bar dataKey="value" fill="#3b82f6" radius={[6, 6, 0, 0]} />
                   </BarChart>
@@ -242,7 +292,9 @@ export function DashboardPage() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <div>
               <CardTitle className="text-base font-semibold">Ticket mới nhất</CardTitle>
-              <CardDescription className="text-xs">Các yêu cầu bảo trì vừa được tạo gần đây</CardDescription>
+              <CardDescription className="text-xs">
+                Các yêu cầu bảo trì vừa được tạo gần đây
+              </CardDescription>
             </div>
             <Button asChild variant="ghost" size="sm" className="text-xs gap-1 text-primary">
               <Link to={appRoutes.tickets}>
@@ -259,11 +311,18 @@ export function DashboardPage() {
             ) : recentTickets.length > 0 ? (
               <div className="divide-y border rounded-lg overflow-hidden">
                 {recentTickets.map((ticket) => (
-                  <div key={ticket.id} className="p-3.5 flex items-center justify-between gap-4 hover:bg-muted/40 transition-colors">
+                  <div
+                    key={ticket.id}
+                    className="p-3.5 flex items-center justify-between gap-4 hover:bg-muted/40 transition-colors"
+                  >
                     <div className="min-w-0 space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-semibold text-primary">{ticket.ticketCode}</span>
-                        <h4 className="text-xs font-semibold text-foreground truncate">{ticket.title}</h4>
+                        <span className="text-xs font-mono font-semibold text-primary">
+                          {ticket.ticketCode}
+                        </span>
+                        <h4 className="text-xs font-semibold text-foreground truncate">
+                          {ticket.title}
+                        </h4>
                       </div>
                       <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                         <span className="flex items-center gap-1">
@@ -290,11 +349,16 @@ export function DashboardPage() {
         <Card className="lg:col-span-4">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold">Ticket Life Cycle</CardTitle>
-            <CardDescription className="text-xs">Quy trình xử lý một yêu cầu bảo trì</CardDescription>
+            <CardDescription className="text-xs">
+              Quy trình xử lý một yêu cầu bảo trì
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {STATUS_WORKFLOW.map((step, idx) => (
-              <div key={step.status} className="flex items-start gap-3 p-2.5 rounded-lg border bg-muted/20 hover:bg-muted/50 transition-colors">
+              <div
+                key={step.status}
+                className="flex items-start gap-3 p-2.5 rounded-lg border bg-muted/20 hover:bg-muted/50 transition-colors"
+              >
                 <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0 mt-0.5">
                   {idx + 1}
                 </div>
