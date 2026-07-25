@@ -1,17 +1,27 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import axios from "axios";
-import { Badge, EmptyState, Panel, Spinner, UserProfile } from "../../shared/ui";
-import { appRoutes } from "../../shared/config/routes";
 import { useAuthStore } from "../../features/auth/model/auth-store";
-import { logout } from "../../shared/api/auth";
 import { useEquipmentQuery } from "../../features/tickets/api/use-equipment-query";
 import { useDepartmentsQuery } from "../../features/equipment/api/use-departments-query";
 import { useDeleteEquipmentMutation } from "../../features/equipment/api/use-equipment-mutations";
 import { EquipmentModal } from "../../features/equipment/components/equipment-modal";
-import { ChangePasswordModal } from "../../features/auth/components/change-password-modal";
 import type { Equipment, EquipmentStatus } from "../../entities/equipment/model/types";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Search,
+  Plus,
+  Wrench,
+  Pencil,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  Building2,
+} from "lucide-react";
 
 const formatDateTime = (value: string | null | undefined) => {
   if (!value) return "N/A";
@@ -20,9 +30,6 @@ const formatDateTime = (value: string | null | undefined) => {
 
 export function EquipmentPage() {
   const session = useAuthStore((state) => state.session);
-  const signOut = useAuthStore((state) => state.signOut);
-  const navigate = useNavigate();
-
   const role = session?.user.roleName;
   const isAdmin = role === "Admin";
   const canEdit = isAdmin;
@@ -35,7 +42,6 @@ export function EquipmentPage() {
 
   const [selectedEq, setSelectedEq] = useState<Equipment | null>(null);
   const [isEqModalOpen, setIsEqModalOpen] = useState(false);
-  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   const { data: deptsPage } = useDepartmentsQuery({ pageSize: 100 });
   const {
@@ -51,18 +57,6 @@ export function EquipmentPage() {
   });
 
   const deleteMutation = useDeleteEquipmentMutation();
-
-  const handleLogout = async (): Promise<void> => {
-    const refreshToken = session?.refreshToken;
-    try {
-      if (refreshToken) {
-        await logout(refreshToken);
-      }
-    } finally {
-      signOut();
-      navigate(appRoutes.login);
-    }
-  };
 
   const handleDelete = async (id: number) => {
     if (!window.confirm("Bạn có chắc chắn muốn xóa thiết bị này không?")) return;
@@ -83,87 +77,79 @@ export function EquipmentPage() {
   const equipmentList = eqPage?.items ?? [];
   const totalPages = eqPage?.totalPages ?? 1;
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "Active":
+        return <Badge variant="success">Hoạt động</Badge>;
+      case "UnderMaintenance":
+        return <Badge variant="warning">Đang bảo trì</Badge>;
+      case "Retired":
+        return <Badge variant="destructive">Thanh lý</Badge>;
+      case "Inactive":
+      default:
+        return <Badge variant="secondary">Ngưng hoạt động</Badge>;
+    }
+  };
+
   return (
-    <div className="dashboard">
-      <header className="topbar">
-        <div className="brand">
-          <div className="brand-mark">IM</div>
-          <div>
-            <strong>Management Console</strong>
-            <span>Thiết bị workspace</span>
-          </div>
-        </div>
-
-        <nav className="tabs" aria-label="Modules">
-          <Link className="tab" to={appRoutes.dashboard}>
-            Dashboard
-          </Link>
-          <Link className="tab" to={appRoutes.tickets}>
-            Tickets
-          </Link>
-          <Link className="tab active" to={appRoutes.equipment}>
+    <div className="space-y-6">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border rounded-2xl p-6 shadow-sm">
+        <div>
+          <span className="text-xs font-semibold text-primary uppercase tracking-wider">
             Equipment
-          </Link>
-          {isAdmin && (
-            <Link className="tab" to={appRoutes.users}>
-              Users
-            </Link>
-          )}
-          {isAdmin && (
-            <Link className="tab" to={appRoutes.departments}>
-              Departments
-            </Link>
-          )}
-        </nav>
+          </span>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground mt-1">
+            Danh sách thiết bị
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Quản lý thông tin thiết bị văn phòng, vị trí phòng ban và lịch sử tình trạng hoạt động.
+          </p>
+        </div>
+        {canEdit && (
+          <Button
+            onClick={() => {
+              setSelectedEq(null);
+              setIsEqModalOpen(true);
+            }}
+            className="gap-1.5 shrink-0"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Thêm Thiết Bị</span>
+          </Button>
+        )}
+      </div>
 
-        <UserProfile
-          fullName={session?.user.fullName}
-          roleName={session?.user.roleName}
-          onLogout={handleLogout}
-          onChangePassword={() => setIsChangePasswordOpen(true)}
-        />
-      </header>
-
-      <div className="layout" style={{ gridTemplateColumns: "1fr" }}>
-        <main className="main-panel">
-          <Panel>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <span className="eyebrow">Equipment</span>
-                <h2>Quản lý danh sách thiết bị văn phòng</h2>
-              </div>
-              {canEdit && (
-                <button
-                  type="button"
-                  className="button primary"
-                  onClick={() => {
-                    setSelectedEq(null);
-                    setIsEqModalOpen(true);
-                  }}
-                >
-                  + Thêm Thiết Bị
-                </button>
-              )}
+      {/* Main Content Card */}
+      <Card>
+        <CardHeader className="pb-4 border-b">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <CardTitle className="text-base font-semibold">Danh sách thiết bị hiện có</CardTitle>
+              <CardDescription className="text-xs">
+                Hiển thị trang {page} / {totalPages} (Tổng cộng {eqPage?.totalItems ?? 0} thiết bị)
+              </CardDescription>
             </div>
 
-            <div className="filter-grid" style={{ gridTemplateColumns: "2fr 1fr 1fr" }}>
-              <label className="field">
-                <span>Tìm kiếm</span>
-                <input
-                  className="input"
+            {/* Filter Bar */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 min-w-0 md:w-auto">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  type="text"
                   value={search}
-                  placeholder="Mã, tên, hoặc mô tả thiết bị..."
+                  placeholder="Mã, tên thiết bị..."
                   onChange={(e) => {
                     setSearch(e.target.value);
                     setPage(1);
                   }}
+                  className="pl-8 text-xs h-9"
                 />
-              </label>
+              </div>
 
-              <label className="field">
-                <span>Phòng ban</span>
+              <div>
                 <select
-                  className="select"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   value={deptFilter}
                   onChange={(e) => {
                     setDeptFilter(e.target.value ? Number(e.target.value) : "");
@@ -177,12 +163,11 @@ export function EquipmentPage() {
                     </option>
                   ))}
                 </select>
-              </label>
+              </div>
 
-              <label className="field">
-                <span>Trạng thái</span>
+              <div>
                 <select
-                  className="select"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   value={statusFilter}
                   onChange={(e) => {
                     setStatusFilter(e.target.value);
@@ -195,130 +180,131 @@ export function EquipmentPage() {
                   <option value="UnderMaintenance">Đang bảo trì (UnderMaintenance)</option>
                   <option value="Retired">Thanh lý (Retired)</option>
                 </select>
-              </label>
+              </div>
             </div>
+          </div>
+        </CardHeader>
 
-            <div className="table-wrap">
-              {isLoading ? (
-                <div className="centered-content" style={{ padding: "40px" }}>
-                  <Spinner />
-                </div>
-              ) : isError ? (
-                <EmptyState
-                  title="Đã xảy ra lỗi"
-                  description="Không thể tải danh sách thiết bị. Vui lòng thử lại sau."
-                />
-              ) : equipmentList.length > 0 ? (
-                <>
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>Mã thiết bị</th>
-                        <th>Tên thiết bị</th>
-                        <th>Phòng ban</th>
-                        <th>Trạng thái</th>
-                        <th>Ngày mua</th>
-                        <th>Mô tả</th>
-                        {canEdit && <th style={{ textAlign: "right" }}>Thao tác</th>}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {equipmentList.map((eq) => (
-                        <tr key={eq.id}>
-                          <td style={{ fontWeight: 800 }}>{eq.code}</td>
-                          <td>{eq.name}</td>
-                          <td>{eq.departmentName}</td>
-                          <td>
-                            <Badge
-                              tone={
-                                eq.status === "Active"
-                                  ? "good"
-                                  : eq.status === "UnderMaintenance"
-                                    ? "warn"
-                                    : eq.status === "Retired"
-                                      ? "bad"
-                                      : "default"
-                              }
+        <CardContent className="p-0 overflow-x-auto">
+          {isLoading ? (
+            <div className="py-16 flex justify-center">
+              <div className="h-7 w-7 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+            </div>
+          ) : isError ? (
+            <div className="p-12 text-center text-xs text-destructive">
+              Đã xảy ra lỗi. Không thể tải danh sách thiết bị.
+            </div>
+          ) : equipmentList.length > 0 ? (
+            <>
+              <table className="w-full text-left text-xs">
+                <thead className="bg-muted/50 border-b text-muted-foreground uppercase text-[10px] font-semibold tracking-wider">
+                  <tr>
+                    <th className="p-3.5 pl-6">Mã thiết bị</th>
+                    <th className="p-3.5">Tên thiết bị</th>
+                    <th className="p-3.5">Phòng ban</th>
+                    <th className="p-3.5">Trạng thái</th>
+                    <th className="p-3.5">Ngày mua</th>
+                    <th className="p-3.5">Mô tả</th>
+                    {canEdit && <th className="p-3.5 pr-6 text-right">Thao tác</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {equipmentList.map((eq) => (
+                    <tr key={eq.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="p-3.5 pl-6 font-mono font-bold text-primary">{eq.code}</td>
+                      <td className="p-3.5 font-semibold text-foreground">{eq.name}</td>
+                      <td className="p-3.5 text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Building2 className="h-3 w-3 text-muted-foreground shrink-0" />
+                          {eq.departmentName}
+                        </span>
+                      </td>
+                      <td className="p-3.5">{getStatusBadge(eq.status)}</td>
+                      <td className="p-3.5 text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
+                          {formatDateTime(eq.purchasedDate)}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-muted-foreground max-w-xs truncate">
+                        {eq.description || "N/A"}
+                      </td>
+                      {canEdit && (
+                        <td className="p-3.5 pr-6 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedEq(eq);
+                                setIsEqModalOpen(true);
+                              }}
+                              className="h-8 px-2.5 text-xs gap-1"
                             >
-                              {eq.status}
-                            </Badge>
-                          </td>
-                          <td>{formatDateTime(eq.purchasedDate)}</td>
-                          <td>
-                            <span style={{ fontSize: "13px", color: "var(--muted)" }}>
-                              {eq.description || "N/A"}
-                            </span>
-                          </td>
-                          {canEdit && (
-                            <td style={{ textAlign: "right" }}>
-                              <div
-                                style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}
-                              >
-                                <button
-                                  type="button"
-                                  className="button secondary"
-                                  style={{ padding: "6px 10px", fontSize: "13px" }}
-                                  onClick={() => {
-                                    setSelectedEq(eq);
-                                    setIsEqModalOpen(true);
-                                  }}
-                                >
-                                  Sửa
-                                </button>
-                                {isAdmin && (
-                                  <button
-                                    type="button"
-                                    className="button danger"
-                                    style={{ padding: "6px 10px", fontSize: "13px" }}
-                                    onClick={() => handleDelete(eq.id)}
-                                    disabled={deleteMutation.isPending}
-                                  >
-                                    Xóa
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                              <Pencil className="h-3.5 w-3.5" />
+                              <span>Sửa</span>
+                            </Button>
 
-                  <div
-                    className="button-row spaced"
-                    style={{ justifyContent: "center", marginTop: "20px" }}
+                            {isAdmin && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(eq.id)}
+                                disabled={deleteMutation.isPending}
+                                className="h-8 px-2.5 text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                <span>Xóa</span>
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Pagination Controls */}
+              <div className="flex items-center justify-between p-4 border-t">
+                <p className="text-xs text-muted-foreground">
+                  Trang <strong className="text-foreground">{page}</strong> trên{" "}
+                  <strong className="text-foreground">{totalPages}</strong>
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page === 1}
+                    onClick={() => setPage((p) => p - 1)}
+                    className="h-8 gap-1 text-xs"
                   >
-                    <button
-                      type="button"
-                      className="button secondary"
-                      disabled={page === 1}
-                      onClick={() => setPage((p) => p - 1)}
-                    >
-                      Trước
-                    </button>
-                    <span style={{ alignSelf: "center", fontWeight: "bold" }}>
-                      Trang {page} / {totalPages}
-                    </span>
-                    <button
-                      type="button"
-                      className="button secondary"
-                      disabled={page === totalPages}
-                      onClick={() => setPage((p) => p + 1)}
-                    >
-                      Sau
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <EmptyState
-                  title="Không tìm thấy thiết bị"
-                  description="Hãy thử thay đổi điều kiện tìm kiếm hoặc thêm thiết bị mới."
-                />
-              )}
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                    <span>Trước</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page === totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                    className="h-8 gap-1 text-xs"
+                  >
+                    <span>Sau</span>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="py-16 text-center text-xs text-muted-foreground space-y-1">
+              <Wrench className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
+              <p className="font-semibold text-foreground">Không tìm thấy thiết bị</p>
+              <p>Hãy thử thay đổi điều kiện tìm kiếm hoặc thêm thiết bị mới.</p>
             </div>
-          </Panel>
-        </main>
-      </div>
+          )}
+        </CardContent>
+      </Card>
 
       <EquipmentModal
         equipment={selectedEq}
@@ -327,11 +313,6 @@ export function EquipmentPage() {
           setIsEqModalOpen(false);
           setSelectedEq(null);
         }}
-      />
-
-      <ChangePasswordModal
-        isOpen={isChangePasswordOpen}
-        onClose={() => setIsChangePasswordOpen(false)}
       />
     </div>
   );
