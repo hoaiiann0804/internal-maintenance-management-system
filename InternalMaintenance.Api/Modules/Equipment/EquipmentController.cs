@@ -19,7 +19,7 @@ public class EquipmentController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly CurrentUserService _currentUserService;
-    
+
     public EquipmentController(AppDbContext context, CurrentUserService currentUserService)
     {
         _context = context;
@@ -43,8 +43,8 @@ public class EquipmentController : ControllerBase
         // Các Role khác chỉ xem thiết bị của phòng ban mình HOẶC thiết bị mà phòng ban mình chịu trách nhiệm bảo trì.
         if (role != UserRoles.Admin)
         {
-            equipmentQuery = equipmentQuery.Where(e => 
-                e.DepartmentId == userDeptId || 
+            equipmentQuery = equipmentQuery.Where(e =>
+                e.DepartmentId == userDeptId ||
                 e.MaintenanceDepartmentId == userDeptId
             );
         }
@@ -132,8 +132,8 @@ public class EquipmentController : ControllerBase
         var role = _currentUserService.Role;
         var userDeptId = _currentUserService.DepartmentId;
 
-        if (role != UserRoles.Admin && 
-            equipment.DepartmentId != userDeptId && 
+        if (role != UserRoles.Admin &&
+            equipment.DepartmentId != userDeptId &&
             equipment.MaintenanceDepartmentId != userDeptId)
         {
             return Forbid();

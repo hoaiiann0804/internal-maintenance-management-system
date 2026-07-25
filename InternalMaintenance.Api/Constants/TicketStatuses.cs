@@ -1,8 +1,9 @@
 
 namespace InternalMaintenance.Api.Constants;
+
 public class TicketStatuses
 {
-     public const string Pending = "Pending";
+    public const string Pending = "Pending";
 
     public const string Assigned = "Assigned";
 

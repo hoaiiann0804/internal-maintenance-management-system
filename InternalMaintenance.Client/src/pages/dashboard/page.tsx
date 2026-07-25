@@ -1,12 +1,23 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { appRoutes } from "@/shared/config/routes";
 import { useTicketsQuery } from "@/features/tickets/api/use-tickets-query";
 import { useDashboardSummaryQuery } from "@/features/dashboard/api/use-dashboard-summary-query";
 import { useDashboardChartsQuery } from "@/features/dashboard/api/use-dashboard-charts-query";
+import { calculateSlaInfo } from "@/features/tickets/lib/sla-utils";
+import { TicketSlaBadge } from "@/features/tickets/components/ticket-sla-badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Ticket, Wrench, Users, Building2, ArrowRight, Clock } from "lucide-react";
+import {
+  Ticket,
+  Wrench,
+  Building2,
+  ArrowRight,
+  Clock,
+  AlertTriangle,
+  ShieldCheck,
+} from "lucide-react";
 import {
   PieChart,
   Pie,
@@ -28,22 +39,44 @@ const STATUS_WORKFLOW: Array<{ status: string; label: string; desc: string }> = 
   { status: "Closed", label: "Đã đóng", desc: "Yêu cầu đã hoàn tất hoàn toàn" },
 ];
 
-const formatDateTime = (value: string | null | undefined) => {
-  if (!value) return "N/A";
-  return new Intl.DateTimeFormat("vi-VN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-};
+import { formatDateTime } from "@/shared/lib/date-utils";
 
 const CHART_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
 export function DashboardPage() {
   const { data: summary, isLoading: isSummaryLoading } = useDashboardSummaryQuery();
   const { data: charts, isLoading: isChartsLoading } = useDashboardChartsQuery();
-  const { data: ticketsPage, isLoading: isTicketsLoading } = useTicketsQuery({ pageSize: 6 });
+  const { data: ticketsPage, isLoading: isTicketsLoading } = useTicketsQuery({ pageSize: 100 });
 
-  const recentTickets = ticketsPage?.items ?? [];
+  const allTickets = useMemo(() => ticketsPage?.items ?? [], [ticketsPage?.items]);
+  const recentTickets = useMemo(() => allTickets.slice(0, 6), [allTickets]);
+
+  const slaMetrics = useMemo(() => {
+    let overdueCount = 0;
+    let metSlaCount = 0;
+    let missedSlaCount = 0;
+
+    for (const t of allTickets) {
+      const info = calculateSlaInfo(t);
+      if (info.isBreached) {
+        overdueCount++;
+      }
+      if (info.statusType === "MetSLA") {
+        metSlaCount++;
+      } else if (info.statusType === "MissedSLA") {
+        missedSlaCount++;
+      }
+    }
+
+    const totalFinalized = metSlaCount + missedSlaCount;
+    const complianceRate =
+      totalFinalized > 0 ? Math.round((metSlaCount / totalFinalized) * 100) : 100;
+
+    return {
+      overdueCount,
+      complianceRate,
+    };
+  }, [allTickets]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -98,8 +131,8 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* Top Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Top Stats Grid (5 Cards) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
@@ -113,8 +146,8 @@ export function DashboardPage() {
               </h3>
               <p className="text-[11px] text-muted-foreground mt-1">Yêu cầu chưa hoàn thành</p>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center">
-              <Ticket className="h-6 w-6" />
+            <div className="w-11 h-11 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+              <Ticket className="h-5 w-5" />
             </div>
           </CardContent>
         </Card>
@@ -134,27 +167,40 @@ export function DashboardPage() {
               </h3>
               <p className="text-[11px] text-muted-foreground mt-1">Thiết bị đang hoạt động</p>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-              <Wrench className="h-6 w-6" />
+            <div className="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+              <Wrench className="h-5 w-5" />
             </div>
           </CardContent>
         </Card>
 
+        {/* SLA Compliance Rate Stat */}
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase">Technicians</p>
-              <h3 className="text-2xl font-bold mt-1">
-                {isSummaryLoading ? (
-                  <span className="text-muted text-base">...</span>
-                ) : (
-                  (summary?.totalTechnicians ?? 0)
-                )}
+              <p className="text-xs font-medium text-muted-foreground uppercase">SLA Compliance</p>
+              <h3 className="text-2xl font-bold mt-1 text-emerald-600 dark:text-emerald-400">
+                {isTicketsLoading ? "..." : `${slaMetrics.complianceRate}%`}
               </h3>
-              <p className="text-[11px] text-muted-foreground mt-1">Kỹ thuật viên phụ trách</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Tỷ lệ tuân thủ SLA</p>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
-              <Users className="h-6 w-6" />
+            <div className="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Overdue SLA Stat */}
+        <Card className="hover:shadow-md transition-shadow border-destructive/30">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase">Overdue SLA</p>
+              <h3 className="text-2xl font-bold mt-1 text-destructive">
+                {isTicketsLoading ? "..." : slaMetrics.overdueCount}
+              </h3>
+              <p className="text-[11px] text-muted-foreground mt-1">Ticket quá hạn SLA</p>
+            </div>
+            <div className="w-11 h-11 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
+              <AlertTriangle className="h-5 w-5 animate-pulse" />
             </div>
           </CardContent>
         </Card>
@@ -172,8 +218,8 @@ export function DashboardPage() {
               </h3>
               <p className="text-[11px] text-muted-foreground mt-1">Phòng ban sử dụng</p>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center">
-              <Building2 className="h-6 w-6" />
+            <div className="w-11 h-11 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center shrink-0">
+              <Building2 className="h-5 w-5" />
             </div>
           </CardContent>
         </Card>
@@ -333,6 +379,7 @@ export function DashboardPage() {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
+                      <TicketSlaBadge ticket={ticket} />
                       {getPriorityBadge(ticket.priority)}
                       {getStatusBadge(ticket.status)}
                     </div>

@@ -1,12 +1,13 @@
 using System.Security.Claims;
 
 namespace InternalMaintenance.Api.Services;
+
 public class CurrentUserService
 {
     // Dùng để truy cập HttpContext của request hiện tại
     // HttpContext.User chứa thông tin user sau khi JWT được xác thực
     private readonly IHttpContextAccessor _httpContextAccessor;
-    public CurrentUserService (IHttpContextAccessor httpContextAccessor)
+    public CurrentUserService(IHttpContextAccessor httpContextAccessor)
     {
         _httpContextAccessor = httpContextAccessor;
     }
@@ -20,12 +21,12 @@ public class CurrentUserService
             .FindFirstValue(ClaimTypes.NameIdentifier);
             // Không có userId nghĩa là request chưa xác thực
             // Hoặc token thiếu claim cần thiết
-            if(!int.TryParse(userIdValue, out var userId))
+            if (!int.TryParse(userIdValue, out var userId))
             {
                 throw new UnauthorizedAccessException(
                     "User id claim is missing or invalid"
                 );
-            } 
+            }
             return userId;
         }
     }
@@ -56,12 +57,12 @@ public class CurrentUserService
         {
             var value = _httpContextAccessor.HttpContext?.User
             .FindFirstValue("departmentId");
-           if(!int.TryParse(value, out var departmentId))
-        {
-            return null;
-        }
+            if (!int.TryParse(value, out var departmentId))
+            {
+                return null;
+            }
 
-        return departmentId;
+            return departmentId;
         }
     }
     // Kiểm tra user có đang dùng temporary password hay không 

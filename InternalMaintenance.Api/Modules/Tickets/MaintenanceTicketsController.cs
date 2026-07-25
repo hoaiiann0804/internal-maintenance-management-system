@@ -349,7 +349,7 @@ public class MaintenanceTicketsController : ControllerBase
             if (ticket.Status != TicketStatuses.Pending)
                 return BadRequest(new { message = "Ticket already in processing state" });
         }
-        else 
+        else
         {
             // Không phải Requester, thì chỉ có Admin hoặc Manager (thuộc phòng ban) mới được sửa
             if (role != UserRoles.Admin && role != UserRoles.Manager)
@@ -724,7 +724,7 @@ public class MaintenanceTicketsController : ControllerBase
         if (newStatus == TicketStatuses.Cancelled)
         {
             var canCancel = ticket.CreatedByUserId == userId
-            || role == UserRoles.Admin 
+            || role == UserRoles.Admin
             || (role == UserRoles.Manager && equipment.DepartmentId == departmentId);
 
             if (!canCancel)

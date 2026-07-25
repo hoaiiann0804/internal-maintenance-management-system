@@ -68,7 +68,10 @@ public static class ServiceCollectionExtensions
             });
 
         services.AddAuthorization();
-        services.AddControllers();
+        services.AddControllers().AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.Converters.Add(new InternalMaintenance.Api.Common.UtcDateTimeJsonConverter());
+        });
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
         services.AddHttpClient();

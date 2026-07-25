@@ -28,12 +28,7 @@ import {
   Mail,
 } from "lucide-react";
 
-const formatDateTime = (value: string | null | undefined) => {
-  if (!value) return "Chưa từng đăng nhập";
-  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(
-    new Date(value),
-  );
-};
+import { formatDateTime } from "@/shared/lib/date-utils";
 
 function getInitials(name: string | undefined) {
   if (!name) return "?";

@@ -17,8 +17,8 @@ public class ChangeTicketStatusRequest
     public string Status { get; set; } = string.Empty;
 
     // Kết quả xử lý cuối cùng, thường chỉ cần khi status = Resolved.
-    public string? ResolutionNote {get;set;}
+    public string? ResolutionNote { get; set; }
 
     // Ghi chú lần đổi trạng thái này, lưu vào TicketStatusHistory.Note.
-    public string? Note {get;set;}
+    public string? Note { get; set; }
 }

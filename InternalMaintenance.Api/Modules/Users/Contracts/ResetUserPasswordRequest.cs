@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 namespace InternalMaintenance.Api.Modules.Users.Contracts;
+
 public class ResetUserPasswordRequest
 {
     [Required]

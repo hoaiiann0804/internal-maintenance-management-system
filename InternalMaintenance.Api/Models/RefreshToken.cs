@@ -17,5 +17,5 @@ public class RefreshToken
     public DateTime? RevokedAt { get; set; }
 
     //Thông tin người dùng phải tương ứng Refresh Token này 
-    public User User {get;set;} = null!;
+    public User User { get; set; } = null!;
 }

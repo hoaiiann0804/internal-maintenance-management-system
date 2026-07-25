@@ -12,7 +12,7 @@ public class EquipmentResponse
     public DateTime? PurchasedDate { get; set; }
 
     public string? Description { get; set; }
-    
+
     public int? MaintenanceDepartmentId { get; set; }
     public string? MaintenanceDepartmentName { get; set; }
 

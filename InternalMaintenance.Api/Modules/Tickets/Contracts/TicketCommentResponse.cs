@@ -1,4 +1,5 @@
 namespace InternalMaintenance.Api.Modules.Tickets.Contracts;
+
 public class TicketCommentResponse
 {
     public int Id { get; set; }

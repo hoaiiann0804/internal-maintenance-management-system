@@ -20,10 +20,11 @@ namespace InternalMaintenance.Api.Modules.Tickets.Contracts;
 // Nên note ko cần thêm vào MaintenanceTickets,
 // Vì note là ghi chú riêng "Làm phân công xử lý ticket"
 // không phải thông tin chính cố định của ticket
-public class AssignTicketRequest {
-    [Range(1,int.MaxValue, ErrorMessage = "EquipmentId must be greater than 0")]
+public class AssignTicketRequest
+{
+    [Range(1, int.MaxValue, ErrorMessage = "EquipmentId must be greater than 0")]
 
-    public int AssignedTechnicianId {get;set;}
+    public int AssignedTechnicianId { get; set; }
 
     //Ghi chú thêm cho lần phân công ticket
     //Ví dụ xử lý trong hôm nay vì phòng kế toán đang cần in hóa đơn 
