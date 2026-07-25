@@ -1,10 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { wireframeData } from "../../shared/mock/wireframe-data";
-import { Badge, EmptyState, Panel, Spinner, UserProfile } from "../../shared/ui";
-import { appRoutes } from "../../shared/config/routes";
-import { useAuthStore } from "../../features/auth/model/auth-store";
-import { logout } from "../../shared/api/auth";
 import type {
   TicketHistoryItem,
   TicketPriority,
@@ -15,7 +10,12 @@ import { useTicketsQuery } from "../../features/tickets/api/use-tickets-query";
 import { CreateTicketModal } from "../../features/tickets/components/create-ticket-modal";
 import { EditTicketModal } from "../../features/tickets/components/edit-ticket-modal";
 import { TicketActionPanel } from "../../features/tickets/components/ticket-action-panel";
-import { ChangePasswordModal } from "../../features/auth/components/change-password-modal";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Search, Plus, Wrench, User, Calendar, Edit3, History } from "lucide-react";
 
 const formatDateTime = (value: string | null | undefined) => {
   if (!value) return "N/A";
@@ -25,39 +25,18 @@ const formatDateTime = (value: string | null | undefined) => {
 };
 
 export function TicketsPage() {
-  const session = useAuthStore((state) => state.session);
-  const signOut = useAuthStore((state) => state.signOut);
-  const navigate = useNavigate();
-
-  const isAdmin = session?.user.roleName === "Admin";
-
-  const handleLogout = async (): Promise<void> => {
-    const refreshToken = session?.refreshToken;
-
-    try {
-      if (refreshToken) {
-        await logout(refreshToken);
-      }
-    } finally {
-      signOut();
-      navigate(appRoutes.login);
-    }
-  };
-
   const [search, setSearch] = useState("");
   const [ticketStatus, setTicketStatus] = useState<"All" | TicketStatus>("All");
   const [ticketPriority, setTicketPriority] = useState<"All" | TicketPriority>("All");
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   const {
     data: ticketsPage,
     isLoading,
     isError,
   } = useTicketsQuery({
-    // keyword: search, // API chưa hỗ trợ, tạm thời vô hiệu hóa
     status: ticketStatus === "All" ? undefined : ticketStatus,
     priority: ticketPriority === "All" ? undefined : ticketPriority,
   });
@@ -65,10 +44,7 @@ export function TicketsPage() {
   const tickets = useMemo(() => ticketsPage?.items ?? [], [ticketsPage?.items]);
   const filteredTickets = useMemo(() => {
     const keyword = search.trim().toLowerCase();
-
-    if (!keyword) {
-      return tickets;
-    }
+    if (!keyword) return tickets;
 
     return tickets.filter((ticket) =>
       [
@@ -88,7 +64,6 @@ export function TicketsPage() {
     if (selectedTicketId && filteredTickets.some((ticket) => ticket.id === selectedTicketId)) {
       return selectedTicketId;
     }
-
     return filteredTickets[0]?.id ?? null;
   }, [selectedTicketId, filteredTickets]);
 
@@ -98,93 +73,83 @@ export function TicketsPage() {
     isError: isSelectedTicketError,
   } = useTicketDetailQuery(activeTicketId);
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "Resolved":
+      case "Closed":
+        return <Badge variant="success">{status}</Badge>;
+      case "InProgress":
+        return <Badge variant="default">{status}</Badge>;
+      case "Assigned":
+        return <Badge variant="warning">{status}</Badge>;
+      case "Cancelled":
+        return <Badge variant="outline">{status}</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case "Critical":
+      case "High":
+        return <Badge variant="destructive">{priority}</Badge>;
+      case "Medium":
+        return <Badge variant="warning">{priority}</Badge>;
+      default:
+        return <Badge variant="outline">{priority}</Badge>;
+    }
+  };
+
   return (
-    <div className="dashboard">
-      <header className="topbar">
-        <div className="brand">
-          <div className="brand-mark">IM</div>
-          <div>
-            <strong>Management Console</strong>
-            <span>Tickets workspace</span>
-          </div>
+    <div className="space-y-6">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border rounded-2xl p-6 shadow-sm">
+        <div>
+          <span className="text-xs font-semibold text-primary uppercase tracking-wider">
+            Workspace
+          </span>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground mt-1">Ticket Queue</h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Quản lý, phân công và theo dõi tiến độ giải quyết sự cố thiết bị nội bộ.
+          </p>
         </div>
+        <Button onClick={() => setIsCreateModalOpen(true)} className="gap-1.5 shrink-0">
+          <Plus className="h-4 w-4" />
+          <span>Tạo Ticket Mới</span>
+        </Button>
+      </div>
 
-        <nav className="tabs" aria-label="Modules">
-          <Link className="tab" to={appRoutes.dashboard}>
-            Dashboard
-          </Link>
-          <Link className="tab active" to={appRoutes.tickets}>
-            Tickets
-          </Link>
-          <Link className="tab" to={appRoutes.equipment}>
-            Equipment
-          </Link>
-          {isAdmin && (
-            <Link className="tab" to={appRoutes.users}>
-              Users
-            </Link>
-          )}
-          {isAdmin && (
-            <Link className="tab" to={appRoutes.departments}>
-              Departments
-            </Link>
-          )}
-        </nav>
+      {/* Main 2-Column Split View */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Master Queue List (5 cols) */}
+        <Card className="lg:col-span-5 flex flex-col max-h-[850px]">
+          <CardHeader className="pb-3 border-b">
+            <CardTitle className="text-base font-semibold">Danh sách Ticket</CardTitle>
+            <CardDescription className="text-xs">
+              Tổng cộng {filteredTickets.length} ticket trong bộ lọc hiện tại
+            </CardDescription>
 
-        <UserProfile
-          fullName={session?.user.fullName}
-          roleName={session?.user.roleName}
-          onLogout={handleLogout}
-          onChangePassword={() => setIsChangePasswordOpen(true)}
-        />
-      </header>
-
-      <div className="layout" style={{ gridTemplateColumns: "1fr" }}>
-        <main className="main-panel">
-          <div className="view-grid tickets-grid">
-            <Panel>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                }}
-              >
-                <div>
-                  <span className="eyebrow">Tickets</span>
-                  <h2>Ticket queue</h2>
-                </div>
-                <button
-                  type="button"
-                  className="button primary"
-                  onClick={() => setIsCreateModalOpen(true)}
-                >
-                  + Create Ticket
-                </button>
+            {/* Filter Bar */}
+            <div className="space-y-3 pt-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  type="text"
+                  value={search}
+                  placeholder="Tìm mã ticket, tiêu đề, thiết bị..."
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-8 text-xs h-8"
+                />
               </div>
-              <p className="section-lead">
-                Chỗ này đã tách thành page riêng để sau này gắn react-query, filter, table,
-                pagination dễ hơn.
-              </p>
 
-              <div className="filter-grid">
-                <label className="field">
-                  <span>Search</span>
-                  <input
-                    className="input"
-                    value={search}
-                    placeholder="Ticket code, title, description"
-                    onChange={(event) => setSearch(event.target.value)}
-                  />
-                </label>
-                <label className="field">
-                  <span>Status</span>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">Trạng thái</Label>
                   <select
-                    className="select"
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     value={ticketStatus}
-                    onChange={(event) =>
-                      setTicketStatus(event.target.value as TicketStatus | "All")
-                    }
+                    onChange={(e) => setTicketStatus(e.target.value as TicketStatus | "All")}
                   >
                     {["All", ...wireframeData.workflow, "Cancelled"].map((status) => (
                       <option key={status} value={status}>
@@ -192,195 +157,216 @@ export function TicketsPage() {
                       </option>
                     ))}
                   </select>
-                </label>
-                <label className="field">
-                  <span>Priority</span>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">Độ ưu tiên</Label>
                   <select
-                    className="select"
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     value={ticketPriority}
-                    onChange={(event) =>
-                      setTicketPriority(event.target.value as TicketPriority | "All")
-                    }
+                    onChange={(e) => setTicketPriority(e.target.value as TicketPriority | "All")}
                   >
-                    {["All", ...wireframeData.priorities].map((priority) => (
-                      <option key={priority} value={priority}>
-                        {priority}
+                    {["All", ...wireframeData.priorities].map((p) => (
+                      <option key={p} value={p}>
+                        {p}
                       </option>
                     ))}
                   </select>
-                </label>
-              </div>
-
-              <div className="list">
-                {isLoading ? (
-                  <div className="centered-content">
-                    <Spinner />
-                  </div>
-                ) : isError ? (
-                  <EmptyState
-                    title="Đã có lỗi xảy ra"
-                    description="Không thể tải danh sách ticket. Vui lòng thử lại sau."
-                  />
-                ) : filteredTickets.length > 0 ? (
-                  filteredTickets.map((ticket) => (
-                    <button
-                      key={ticket.id}
-                      type="button"
-                      className={`list-item ${ticket.id === activeTicketId ? "selected" : ""}`}
-                      onClick={() => setSelectedTicketId(ticket.id)}
-                    >
-                      <div className="list-item-header">
-                        <div>
-                          <strong>{ticket.ticketCode}</strong>
-                          <span>{ticket.title}</span>
-                        </div>
-                        <div className="badge-row">
-                          <Badge
-                            tone={
-                              ticket.status === "Resolved" || ticket.status === "Closed"
-                                ? "good"
-                                : ticket.status === "Cancelled"
-                                  ? "bad"
-                                  : "warn"
-                            }
-                          >
-                            {ticket.status}
-                          </Badge>
-                          <Badge
-                            tone={
-                              ticket.priority === "Critical"
-                                ? "bad"
-                                : ticket.priority === "High"
-                                  ? "warn"
-                                  : ticket.priority === "Medium"
-                                    ? "primary"
-                                    : "default"
-                            }
-                          >
-                            {ticket.priority}
-                          </Badge>
-                        </div>
-                      </div>
-                      <span className="muted-line">
-                        {ticket.equipmentName} · {ticket.createdByUserName} ·{" "}
-                        {formatDateTime(ticket.createdAt)}
-                      </span>
-                    </button>
-                  ))
-                ) : (
-                  <EmptyState
-                    title="Không có ticket phù hợp"
-                    description="Thử đổi từ khóa hoặc reset bộ lọc hiện tại."
-                  />
-                )}
-              </div>
-            </Panel>
-
-            <Panel>
-              {isSelectedTicketLoading ? (
-                <div className="centered-content">
-                  <Spinner />
                 </div>
-              ) : isSelectedTicketError ? (
-                <EmptyState
-                  title="Không thể tải chi tiết"
-                  description="Đã có lỗi xảy ra khi tải dữ liệu ticket."
-                />
-              ) : selectedTicket ? (
-                <>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                    }}
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-2 overflow-y-auto flex-1 divide-y">
+            {isLoading ? (
+              <div className="py-12 flex justify-center">
+                <div className="h-6 w-6 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+              </div>
+            ) : isError ? (
+              <div className="p-6 text-center text-xs text-destructive">
+                Không thể tải danh sách ticket. Vui lòng thử lại sau.
+              </div>
+            ) : filteredTickets.length > 0 ? (
+              filteredTickets.map((ticket) => {
+                const isSelected = ticket.id === activeTicketId;
+                return (
+                  <button
+                    key={ticket.id}
+                    type="button"
+                    onClick={() => setSelectedTicketId(ticket.id)}
+                    className={`w-full text-left p-3 rounded-lg transition-all space-y-1.5 ${
+                      isSelected
+                        ? "bg-primary/10 border-l-4 border-l-primary"
+                        : "hover:bg-accent/60"
+                    }`}
                   >
-                    <div>
-                      <span className="eyebrow">Detail</span>
-                      <h2>{selectedTicket.ticketCode}</h2>
-                      <p className="section-lead">{selectedTicket.title}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-mono font-bold text-primary">
+                        {ticket.ticketCode}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {getPriorityBadge(ticket.priority)}
+                        {getStatusBadge(ticket.status)}
+                      </div>
                     </div>
+
+                    <h4 className="text-xs font-semibold text-foreground line-clamp-1">
+                      {ticket.title}
+                    </h4>
+
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
+                      <span className="truncate max-w-[160px] flex items-center gap-1">
+                        <Wrench className="h-3 w-3 shrink-0" />
+                        {ticket.equipmentName}
+                      </span>
+                      <span className="shrink-0">{formatDateTime(ticket.createdAt)}</span>
+                    </div>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="p-8 text-center text-xs text-muted-foreground">
+                Không tìm thấy ticket nào phù hợp.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Right Column: Ticket Detail View (7 cols) */}
+        <div className="lg:col-span-7 space-y-6">
+          {isSelectedTicketLoading ? (
+            <Card>
+              <CardContent className="py-16 flex justify-center">
+                <div className="h-7 w-7 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+              </CardContent>
+            </Card>
+          ) : isSelectedTicketError ? (
+            <Card className="border-destructive/30">
+              <CardContent className="py-12 text-center text-xs text-destructive">
+                Không thể tải chi tiết ticket này.
+              </CardContent>
+            </Card>
+          ) : selectedTicket ? (
+            <>
+              {/* Selected Ticket Main Card */}
+              <Card>
+                <CardHeader className="pb-4 border-b">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
+                          {selectedTicket.ticketCode}
+                        </span>
+                        {getStatusBadge(selectedTicket.status)}
+                        {getPriorityBadge(selectedTicket.priority)}
+                      </div>
+                      <h2 className="text-xl font-bold tracking-tight text-foreground mt-2">
+                        {selectedTicket.title}
+                      </h2>
+                    </div>
+
                     {(selectedTicket.status === "Pending" ||
                       selectedTicket.status === "Assigned") && (
-                      <button
-                        type="button"
-                        className="button secondary"
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => setIsEditModalOpen(true)}
+                        className="gap-1.5 shrink-0"
                       >
-                        Chỉnh sửa
-                      </button>
+                        <Edit3 className="h-3.5 w-3.5" />
+                        <span>Chỉnh sửa</span>
+                      </Button>
                     )}
                   </div>
-                  <div className="badge-row">
-                    <Badge
-                      tone={
-                        selectedTicket.status === "Resolved" || selectedTicket.status === "Closed"
-                          ? "good"
-                          : selectedTicket.status === "Cancelled"
-                            ? "bad"
-                            : "warn"
-                      }
-                    >
-                      {selectedTicket.status}
-                    </Badge>
-                    <Badge
-                      tone={
-                        selectedTicket.priority === "Critical"
-                          ? "bad"
-                          : selectedTicket.priority === "High"
-                            ? "warn"
-                            : selectedTicket.priority === "Medium"
-                              ? "primary"
-                              : "default"
-                      }
-                    >
-                      {selectedTicket.priority}
-                    </Badge>
-                    <Badge tone="default">Created by {selectedTicket.createdByUserName}</Badge>
-                  </div>
 
-                  <div className="stack spaced">
-                    <div className="mini-card">
-                      <strong>Description</strong>
-                      <span>{selectedTicket.description}</span>
-                    </div>
-                    <div className="mini-card">
-                      <strong>Equipment</strong>
-                      <span>
-                        {selectedTicket.equipmentCode} - {selectedTicket.equipmentName}
-                      </span>
-                    </div>
-                    <div className="mini-card">
-                      <strong>Current assignment</strong>
-                      <span>{selectedTicket.assignedTechnicianName ?? "Unassigned"}</span>
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground pt-3">
+                    <span className="flex items-center gap-1.5">
+                      <User className="h-3.5 w-3.5 text-primary" />
+                      Tạo bởi:{" "}
+                      <strong className="text-foreground">
+                        {selectedTicket.createdByUserName}
+                      </strong>
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5 text-primary" />
+                      {formatDateTime(selectedTicket.createdAt)}
+                    </span>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="p-6 space-y-4">
+                  {/* Description Box */}
+                  <div className="space-y-1.5">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase">
+                      Mô tả sự cố
+                    </h4>
+                    <div className="p-3.5 rounded-xl border bg-muted/20 text-xs leading-relaxed whitespace-pre-wrap">
+                      {selectedTicket.description}
                     </div>
                   </div>
 
-                  <TicketActionPanel ticket={selectedTicket} />
+                  {/* Info Cards Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <div className="p-3 rounded-lg border bg-card space-y-1">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1">
+                        <Wrench className="h-3.5 w-3.5 text-blue-500" /> Thiết bị
+                      </p>
+                      <p className="text-xs font-semibold text-foreground">
+                        {selectedTicket.equipmentCode} — {selectedTicket.equipmentName}
+                      </p>
+                    </div>
 
-                  <div className="mini-card">
-                    <strong>Timeline</strong>
-                    <div className="stack">
-                      {selectedTicket.history.map((item: TicketHistoryItem) => (
-                        <div key={item.id} className="timeline-item compact">
-                          <strong>{item.status}</strong>
-                          <span>
-                            {item.note} · {item.changedBy} · {formatDateTime(item.changedAt)}
-                          </span>
+                    <div className="p-3 rounded-lg border bg-card space-y-1">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1">
+                        <User className="h-3.5 w-3.5 text-amber-500" /> Kỹ thuật viên phụ trách
+                      </p>
+                      <p className="text-xs font-semibold text-foreground">
+                        {selectedTicket.assignedTechnicianName ?? "Chưa phân công"}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Ticket Action Panel (Assign, Transition Status, Attachments, Comments) */}
+              <TicketActionPanel ticket={selectedTicket} />
+
+              {/* Timeline Card */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <History className="h-4 w-4 text-primary" />
+                    <span>Lịch sử thay đổi (Timeline)</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="relative border-l border-muted pl-4 space-y-4 ml-2">
+                    {selectedTicket.history.map((item: TicketHistoryItem) => (
+                      <div key={item.id} className="relative">
+                        <div className="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-background" />
+                        <div className="text-xs space-y-0.5">
+                          <p className="font-semibold text-foreground">{item.status}</p>
+                          <p className="text-muted-foreground">
+                            {item.note && <span className="text-foreground">{item.note} · </span>}
+                            <span>{item.changedBy}</span> ·{" "}
+                            <span>{formatDateTime(item.changedAt)}</span>
+                          </p>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                </>
-              ) : (
-                <EmptyState
-                  title="No ticket selected"
-                  description="Chọn một ticket từ danh sách để xem chi tiết."
-                />
-              )}
-            </Panel>
-          </div>
-        </main>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card>
+              <CardContent className="py-16 text-center text-xs text-muted-foreground">
+                Vui lòng chọn một ticket từ danh sách bên trái để xem chi tiết.
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
 
       <CreateTicketModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
@@ -392,11 +378,6 @@ export function TicketsPage() {
           onClose={() => setIsEditModalOpen(false)}
         />
       )}
-
-      <ChangePasswordModal
-        isOpen={isChangePasswordOpen}
-        onClose={() => setIsChangePasswordOpen(false)}
-      />
     </div>
   );
 }

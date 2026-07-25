@@ -1,22 +1,11 @@
-/**
- * AttachmentList.tsx
- *
- * Hiển thị danh sách file đính kèm đã được lưu vào DB.
- *
- * THIẾT KẾ:
- * - Chỉ render data từ API (TicketAttachment[]) — không biết gì về quá trình upload.
- * - Click vào file → gọi API lấy Download URL (Presigned URL) rồi mở file.
- *   Lý do KHÔNG lưu URL cố định: Presigned URL có thời hạn (15-60 phút),
- *   mỗi lần xem phải lấy URL mới để đảm bảo bảo mật.
- * - Chỉ hiện nút xóa khi ticket chưa Closed/Cancelled VÀ người dùng là người upload.
- */
-
 import { useState } from "react";
 import { toast } from "sonner";
 import axios from "axios";
 import type { TicketAttachment } from "../../../entities/ticket/model/types";
 import { getAttachmentDownloadUrl } from "../../../shared/api/attachments";
 import { useDeleteAttachmentMutation } from "../api/use-delete-attachment-mutation";
+import { Button } from "@/components/ui/button";
+import { FileText, Image as ImageIcon, Video, Trash2, Download, Loader2 } from "lucide-react";
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -34,35 +23,31 @@ function formatDate(dateStr: string): string {
   }).format(new Date(dateStr));
 }
 
-function getFileIcon(fileType: TicketAttachment["fileType"]): string {
+function getFileIcon(fileType: TicketAttachment["fileType"]) {
   switch (fileType) {
     case "Image":
-      return "🖼️";
+      return <ImageIcon className="h-4 w-4 text-blue-500" />;
     case "Video":
-      return "🎬";
+      return <Video className="h-4 w-4 text-purple-500" />;
     case "Document":
-      return "📄";
     default:
-      return "📄";
+      return <FileText className="h-4 w-4 text-amber-500" />;
   }
 }
 
 type Props = {
   ticketId: number;
   attachments: TicketAttachment[];
-  canDelete: boolean; // true nếu ticket chưa Closed/Cancelled
+  canDelete: boolean;
   currentUserId: number;
 };
 
 export function AttachmentList({ ticketId, attachments, canDelete, currentUserId }: Props) {
-  // Track trạng thái "đang mở" của từng file (đang gọi API lấy download URL)
   const [openingId, setOpeningId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const deleteMutation = useDeleteAttachmentMutation(ticketId);
 
-  // Lấy Presigned Download URL và mở file trong tab mới
-  // Không cache URL này vì nó có thời hạn ngắn
   const handleOpen = async (attachment: TicketAttachment) => {
     if (openingId === attachment.id) return;
     setOpeningId(attachment.id);
@@ -96,52 +81,79 @@ export function AttachmentList({ ticketId, attachments, canDelete, currentUserId
   };
 
   if (attachments.length === 0) {
-    return <p className="attachment-empty">Chưa có file đính kèm nào.</p>;
+    return (
+      <p className="text-xs text-muted-foreground text-center py-3 italic">
+        Chưa có file đính kèm nào.
+      </p>
+    );
   }
 
   return (
-    <ul className="attachment-list">
+    <ul className="space-y-2">
       {attachments.map((att) => {
         const isOpening = openingId === att.id;
         const isDeleting = deletingId === att.id;
-        // Chỉ người upload mới được xóa file của mình
         const canDeleteThis = canDelete && att.uploadedByUserId === currentUserId;
 
         return (
-          <li key={att.id} className="attachment-item">
-            {/* Icon + tên file (clickable để mở) */}
-            <button
-              className="attachment-open-btn"
-              onClick={() => void handleOpen(att)}
-              disabled={isOpening}
-              title={`Mở "${att.originalFileName}"`}
-            >
-              <span className="attachment-file-icon">{getFileIcon(att.fileType)}</span>
-              <span className="attachment-file-name">{att.originalFileName}</span>
-              {isOpening && <span className="attachment-opening-spinner">⏳</span>}
-            </button>
-
-            {/* Meta: kích thước + người upload + ngày */}
-            <div className="attachment-meta">
-              <span>{formatBytes(att.fileSize)}</span>
-              <span>·</span>
-              <span>{att.uploadedByUserName}</span>
-              <span>·</span>
-              <span>{formatDate(att.createdAt)}</span>
+          <li
+            key={att.id}
+            className="flex items-center justify-between gap-3 p-2.5 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+          >
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className="p-1.5 rounded-md bg-muted shrink-0">{getFileIcon(att.fileType)}</div>
+              <div className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => void handleOpen(att)}
+                  disabled={isOpening}
+                  className="text-xs font-medium text-foreground hover:text-primary transition-colors truncate block text-left w-full"
+                >
+                  {att.originalFileName}
+                </button>
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5">
+                  <span>{formatBytes(att.fileSize)}</span>
+                  <span>·</span>
+                  <span>{att.uploadedByUserName}</span>
+                  <span>·</span>
+                  <span>{formatDate(att.createdAt)}</span>
+                </div>
+              </div>
             </div>
 
-            {/* Nút xóa — chỉ hiện nếu có quyền */}
-            {canDeleteThis && (
-              <button
-                className="attachment-delete-btn"
-                onClick={() => void handleDelete(att)}
-                disabled={isDeleting}
-                title="Xóa file này"
-                aria-label={`Xóa "${att.originalFileName}"`}
+            <div className="flex items-center gap-1 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-primary"
+                onClick={() => void handleOpen(att)}
+                disabled={isOpening}
+                title="Tải về/Xem file"
               >
-                {isDeleting ? "..." : "🗑️"}
-              </button>
-            )}
+                {isOpening ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )}
+              </Button>
+
+              {canDeleteThis && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  onClick={() => void handleDelete(att)}
+                  disabled={isDeleting}
+                  title="Xóa file"
+                >
+                  {isDeleting ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              )}
+            </div>
           </li>
         );
       })}

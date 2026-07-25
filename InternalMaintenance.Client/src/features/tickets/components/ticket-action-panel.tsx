@@ -13,7 +13,20 @@ import { useUploadAttachment } from "../api/use-upload-attachment";
 import { AttachmentUploadZone } from "./attachment-upload-zone";
 import { AttachmentList } from "./attachment-list";
 import { TicketCommentsList } from "./ticket-comments-list";
-import { Spinner } from "../../../shared/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  UserCheck,
+  CheckCircle,
+  Play,
+  XCircle,
+  Send,
+  Paperclip,
+  MessageSquare,
+  Loader2,
+} from "lucide-react";
 
 function toastApiError(error: unknown, fallback: string) {
   if (axios.isAxiosError(error)) {
@@ -27,8 +40,6 @@ function toastApiError(error: unknown, fallback: string) {
 type Props = {
   ticket: MaintenanceTicketDetail;
 };
-
-// Không còn TECH_MOCK — dữ liệu thật lấy từ API
 
 export function TicketActionPanel({ ticket }: Props) {
   const session = useAuthStore((state) => state.session);
@@ -47,8 +58,6 @@ export function TicketActionPanel({ ticket }: Props) {
   const statusMutation = useChangeTicketStatusMutation(ticket.id);
   const commentMutation = useCreateTicketCommentMutation(ticket.id);
 
-  // Lấy danh sách technician thật từ API
-  // Admin lấy toàn bộ, Manager chỉ lấy technician thuộc phòng ban của mình
   const { data: techPage, isLoading: isTechLoading } = useUsersQuery(
     role === "Admin"
       ? { role: "Technician", isActive: true, pageSize: 200 }
@@ -65,10 +74,8 @@ export function TicketActionPanel({ ticket }: Props) {
 
   const isFinalized = ticket.status === "Closed" || ticket.status === "Cancelled";
   const isAssignedTech = ticket.assignedTechnicianId === userId;
-
   const isRequester = ticket.createdByUserId === userId;
 
-  // --- HANDLERS ---
   const handleAssign = async () => {
     if (!assignTechId) {
       toast.error("Vui lòng chọn kỹ thuật viên.");
@@ -123,141 +130,159 @@ export function TicketActionPanel({ ticket }: Props) {
     assignMutation.isPending || statusMutation.isPending || commentMutation.isPending;
 
   return (
-    <div className="ticket-action-panel">
+    <div className="space-y-4">
       {/* ── ASSIGN (Admin / Manager) ─────────────────────────── */}
       {(role === "Admin" || role === "Manager") &&
         (ticket.status === "Pending" || ticket.status === "Assigned") && (
-          <div className="control-card">
-            <strong className="control-label">Phân công kỹ thuật viên</strong>
-            <label className="field">
-              <span>Kỹ thuật viên</span>
-              <select
-                className="select"
-                value={assignTechId}
-                onChange={(e) => setAssignTechId(e.target.value)}
-                disabled={isWorking}
-              >
-                <option value="">
-                  {isTechLoading ? "Đang tải..." : "-- Chọn kỹ thuật viên --"}
-                </option>
-                {technicians.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.fullName}
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2 text-primary">
+                <UserCheck className="h-4 w-4" />
+                <span>Phân công kỹ thuật viên</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-0">
+              <div className="space-y-1.5">
+                <Label htmlFor="assign-tech">Kỹ thuật viên</Label>
+                <select
+                  id="assign-tech"
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  value={assignTechId}
+                  onChange={(e) => setAssignTechId(e.target.value)}
+                  disabled={isWorking}
+                >
+                  <option value="">
+                    {isTechLoading ? "Đang tải..." : "-- Chọn kỹ thuật viên --"}
                   </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Ghi chú phân công</span>
-              <textarea
-                className="textarea"
-                rows={2}
-                value={assignNote}
-                onChange={(e) => setAssignNote(e.target.value)}
-                placeholder="Ví dụ: Xử lý trước 5 giờ chiều..."
+                  {technicians.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.fullName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="assign-note">Ghi chú phân công</Label>
+                <Textarea
+                  id="assign-note"
+                  rows={2}
+                  value={assignNote}
+                  onChange={(e) => setAssignNote(e.target.value)}
+                  placeholder="Ví dụ: Xử lý trước 5 giờ chiều..."
+                  disabled={isWorking}
+                />
+              </div>
+
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleAssign}
                 disabled={isWorking}
-              />
-            </label>
-            <button
-              type="button"
-              className="button primary"
-              onClick={handleAssign}
-              disabled={isWorking}
-            >
-              {assignMutation.isPending ? <Spinner /> : "Giao việc"}
-            </button>
-          </div>
+                className="w-full sm:w-auto"
+              >
+                {assignMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                ) : (
+                  <UserCheck className="h-4 w-4 mr-1" />
+                )}
+                Giao việc
+              </Button>
+            </CardContent>
+          </Card>
         )}
 
       {/* ── STATUS TRANSITIONS ───────────────────────────────── */}
       {!isFinalized && (
-        <div className="control-card">
-          <strong className="control-label">Cập nhật trạng thái</strong>
-
-          {/* Ghi chú trạng thái (cho mọi transition) */}
-          <label className="field">
-            <span>Ghi chú</span>
-            <textarea
-              className="textarea"
-              rows={2}
-              value={statusNote}
-              onChange={(e) => setStatusNote(e.target.value)}
-              placeholder="Ghi chú cho lần thay đổi này..."
-              disabled={isWorking}
-            />
-          </label>
-
-          {/* Resolution note — hiển thị khi sắp Resolve */}
-          {isAssignedTech && ticket.status === "InProgress" && (
-            <label className="field">
-              <span>
-                Kết quả xử lý <span style={{ color: "var(--danger, #fb7185)" }}>*</span>
-              </span>
-              <textarea
-                className="textarea"
-                rows={3}
-                value={resolutionNote}
-                onChange={(e) => setResolutionNote(e.target.value)}
-                placeholder="Mô tả kết quả sửa chữa..."
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold">Cập nhật trạng thái</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-0">
+            <div className="space-y-1.5">
+              <Label htmlFor="status-note">Ghi chú thay đổi</Label>
+              <Textarea
+                id="status-note"
+                rows={2}
+                value={statusNote}
+                onChange={(e) => setStatusNote(e.target.value)}
+                placeholder="Ghi chú cho lần thay đổi này..."
                 disabled={isWorking}
               />
-            </label>
-          )}
+            </div>
 
-          <div className="button-row">
-            {/* Technician được assign → InProgress */}
-            {isAssignedTech && ticket.status === "Assigned" && (
-              <button
-                type="button"
-                className="button secondary"
-                onClick={() => handleStatus("InProgress")}
-                disabled={isWorking}
-              >
-                {statusMutation.isPending ? "..." : "Bắt đầu xử lý"}
-              </button>
-            )}
-
-            {/* Technician được assign → Resolved */}
             {isAssignedTech && ticket.status === "InProgress" && (
-              <button
-                type="button"
-                className="button primary"
-                onClick={() => handleStatus("Resolved", true)}
-                disabled={isWorking}
-              >
-                {statusMutation.isPending ? "..." : "Hoàn thành"}
-              </button>
+              <div className="space-y-1.5">
+                <Label htmlFor="resolution-note">
+                  Kết quả xử lý <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  id="resolution-note"
+                  rows={3}
+                  value={resolutionNote}
+                  onChange={(e) => setResolutionNote(e.target.value)}
+                  placeholder="Mô tả kết quả sửa chữa..."
+                  disabled={isWorking}
+                />
+              </div>
             )}
 
-            {/* Requester / Admin / Manager → Closed */}
-            {(isRequester || role === "Admin" || role === "Manager") &&
-              ticket.status === "Resolved" && (
-                <button
+            <div className="flex flex-wrap gap-2 pt-1">
+              {isAssignedTech && ticket.status === "Assigned" && (
+                <Button
                   type="button"
-                  className="button primary"
-                  onClick={() => handleStatus("Closed")}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleStatus("InProgress")}
                   disabled={isWorking}
                 >
-                  {statusMutation.isPending ? "..." : "Đóng ticket"}
-                </button>
+                  <Play className="h-4 w-4 mr-1 text-blue-500" />
+                  Bắt đầu xử lý
+                </Button>
               )}
 
-            {/* Requester / Admin / Manager → Cancelled */}
-            {(isRequester || role === "Admin" || role === "Manager") && (
-              <button
-                type="button"
-                className="button danger"
-                onClick={() => handleStatus("Cancelled")}
-                disabled={isWorking}
-              >
-                {statusMutation.isPending ? "..." : "Hủy ticket"}
-              </button>
-            )}
-          </div>
-        </div>
+              {isAssignedTech && ticket.status === "InProgress" && (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => handleStatus("Resolved", true)}
+                  disabled={isWorking}
+                >
+                  <CheckCircle className="h-4 w-4 mr-1 text-emerald-400" />
+                  Hoàn thành
+                </Button>
+              )}
+
+              {(isRequester || role === "Admin" || role === "Manager") &&
+                ticket.status === "Resolved" && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => handleStatus("Closed")}
+                    disabled={isWorking}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    Đóng ticket
+                  </Button>
+                )}
+
+              {(isRequester || role === "Admin" || role === "Manager") && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleStatus("Cancelled")}
+                  disabled={isWorking}
+                >
+                  <XCircle className="h-4 w-4 mr-1" />
+                  Hủy ticket
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* ── COMMENT ──────────────────────────────────────────── */}
       {/* ── ATTACHMENTS ───────────────────────────────────────── */}
       <AttachmentsSection
         ticketId={ticket.id}
@@ -269,50 +294,50 @@ export function TicketActionPanel({ ticket }: Props) {
         isRequester={isRequester}
       />
 
-      <div className="control-card">
-        <strong className="control-label">Bình luận</strong>
-        <TicketCommentsList comments={ticket.comments} currentUserId={userId} />
-      </div>
+      {/* ── COMMENTS ──────────────────────────────────────────── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <MessageSquare className="h-4 w-4 text-primary" />
+            <span>Bình luận</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-0">
+          <TicketCommentsList comments={ticket.comments} currentUserId={userId} />
 
-      {!isFinalized && (
-        <div className="control-card">
-          <strong className="control-label">Thêm comment</strong>
-          <label className="field">
-            <span>Nội dung</span>
-            <textarea
-              className="textarea"
-              rows={3}
-              value={commentDraft}
-              onChange={(e) => setCommentDraft(e.target.value)}
-              placeholder="Nhập bình luận..."
-              disabled={isWorking}
-            />
-          </label>
-          <button
-            type="button"
-            className="button primary"
-            onClick={handleComment}
-            disabled={isWorking || !commentDraft.trim()}
-          >
-            {commentMutation.isPending ? "Đang gửi..." : "Gửi comment"}
-          </button>
-        </div>
-      )}
+          {!isFinalized && (
+            <div className="space-y-2 pt-2 border-t">
+              <Textarea
+                rows={2}
+                value={commentDraft}
+                onChange={(e) => setCommentDraft(e.target.value)}
+                placeholder="Nhập bình luận..."
+                disabled={isWorking}
+              />
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleComment}
+                  disabled={isWorking || !commentDraft.trim()}
+                  className="gap-1.5"
+                >
+                  {commentMutation.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Send className="h-3.5 w-3.5" />
+                  )}
+                  <span>Gửi comment</span>
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
-// ─── AttachmentsSection ──────────────────────────────────────────────────
-//
-// NGHIỆP VỤ UPLOAD FILE:
-// - Admin / Manager : được upload ở mọi trạng thái chưa Closed/Cancelled
-// - Staff           : được upload khi ticket của họ ở trạng thái Pending/Assigned
-//                    (khi ticket đưa vào InProgress/Resolved, staff tạm không upload thêm)
-// - Technician      : được upload khi ticket được assign cho họ và đang InProgress/Resolved
-//                    (để attach bằng chứng xử lý, kết quả sửa chữa)
-//
-// XEM FILE: Tất cả roles có quyền truy cập ticket đều thấy danh sách file.
-// Nếu API trả 403 (ticket ngoài quyền hạn) → ẩn upload zone, hiện danh sách rỗng.
 type AttachmentsSectionProps = {
   ticketId: number;
   ticketStatus: TicketStatus;
@@ -322,7 +347,6 @@ type AttachmentsSectionProps = {
   isAssignedTech: boolean;
 };
 
-// Kiểm tra role này có được phép upload theo nghiệp vụ không
 function canUploadByRole(
   role: RoleName | undefined,
   ticketStatus: TicketStatus,
@@ -331,16 +355,13 @@ function canUploadByRole(
   isRequester: boolean,
 ): boolean {
   if (isFinalized) return false;
-
   if (role === "Admin" || role === "Manager") return true;
 
-  // Requester (bất kể là Staff hay Technician) được upload khi ticket còn mới
   if (isRequester) {
     return ticketStatus === "Pending" || ticketStatus === "Assigned";
   }
 
   if (role === "Technician") {
-    // Technician upload khi được assign và đang làm việc
     return isAssignedTech && (ticketStatus === "InProgress" || ticketStatus === "Resolved");
   }
 
@@ -360,16 +381,17 @@ function AttachmentsSection({
   const { uploadItems, uploadFiles, removeItem } = useUploadAttachment(ticketId);
 
   const canUpload = canUploadByRole(role, ticketStatus, isFinalized, isAssignedTech, isRequester);
-
-  // 403 = token hợp lệ nhưng không có quyền xem attachment của ticket này
-  // (ví dụ: Technician xem ticket chưa assign cho họ, hoặc Staff xem ticket người khác)
   const isForbidden = axios.isAxiosError(error) && error.response?.status === 403;
 
   return (
-    <div className="control-card">
-      <strong className="control-label">File đính kèm</strong>
-      <div className="attachment-section">
-        {/* Upload zone — chỉ hiện nếu role có quyền upload theo nghiệp vụ */}
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          <Paperclip className="h-4 w-4 text-primary" />
+          <span>File đính kèm</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 pt-0">
         {canUpload && !isForbidden && (
           <AttachmentUploadZone
             uploadItems={uploadItems}
@@ -379,11 +401,10 @@ function AttachmentsSection({
           />
         )}
 
-        {/* Danh sách file đã lưu trong DB */}
         {isLoading ? (
-          <p style={{ fontSize: "0.82rem", color: "var(--muted)", margin: 0 }}>Đang tải...</p>
+          <p className="text-xs text-muted-foreground italic">Đang tải file...</p>
         ) : isForbidden ? (
-          <p style={{ fontSize: "0.82rem", color: "var(--muted)", margin: 0 }}>
+          <p className="text-xs text-muted-foreground italic">
             Không có quyền xem file đính kèm của ticket này.
           </p>
         ) : (
@@ -394,7 +415,7 @@ function AttachmentsSection({
             currentUserId={currentUserId}
           />
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

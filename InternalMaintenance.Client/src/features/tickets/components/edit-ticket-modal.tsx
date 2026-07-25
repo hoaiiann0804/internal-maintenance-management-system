@@ -3,6 +3,18 @@ import { toast } from "sonner";
 import axios from "axios";
 import { useUpdateTicketMutation } from "../api/use-update-ticket-mutation";
 import type { MaintenanceTicket, TicketPriority } from "../../../entities/ticket/model/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 const PRIORITIES: TicketPriority[] = ["Low", "Medium", "High", "Critical"];
 
@@ -19,7 +31,7 @@ export function EditTicketModal({ ticket, isOpen, onClose }: Props) {
 
   const updateTicketMutation = useUpdateTicketMutation(ticket?.id ?? null);
 
-  if (!isOpen || !ticket) return null;
+  if (!ticket) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,44 +55,47 @@ export function EditTicketModal({ ticket, isOpen, onClose }: Props) {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <div className="modal-header">
-          <div>
-            <span className="eyebrow">Chỉnh sửa</span>
-            <h2>{ticket.ticketCode}</h2>
-          </div>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Chỉnh sửa Ticket</DialogTitle>
+          <DialogDescription>Mã ticket: {ticket.ticketCode}</DialogDescription>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="stack spaced">
-          <label className="field">
-            <span>Tiêu đề</span>
-            <input
+        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-title">
+              Tiêu đề <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="edit-title"
               type="text"
-              className="input"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Nhập tiêu đề ticket"
               required
             />
-          </label>
+          </div>
 
-          <label className="field">
-            <span>Mô tả chi tiết</span>
-            <textarea
-              className="textarea"
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-description">
+              Mô tả chi tiết <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              id="edit-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Mô tả rõ tình trạng..."
               required
               rows={4}
             />
-          </label>
+          </div>
 
-          <label className="field">
-            <span>Mức độ ưu tiên</span>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-priority">Mức độ ưu tiên</Label>
             <select
-              className="select"
+              id="edit-priority"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               value={priority}
               onChange={(e) => setPriority(e.target.value as TicketPriority)}
             >
@@ -90,35 +105,30 @@ export function EditTicketModal({ ticket, isOpen, onClose }: Props) {
                 </option>
               ))}
             </select>
-          </label>
-
-          {/* Thông tin không thể chỉnh sửa — hiển thị để tham khảo */}
-          <div className="mini-card">
-            <strong>Thiết bị</strong>
-            <span>
-              {ticket.equipmentCode} — {ticket.equipmentName}
-            </span>
           </div>
 
-          <div className="button-row spaced">
-            <button
-              type="submit"
-              className="button primary"
-              disabled={updateTicketMutation.isPending}
-            >
-              {updateTicketMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
-            </button>
-            <button
+          <div className="rounded-lg border bg-muted/40 p-3 text-xs space-y-1">
+            <p className="font-semibold text-muted-foreground">Thiết bị</p>
+            <p className="font-medium text-foreground">
+              {ticket.equipmentCode} — {ticket.equipmentName}
+            </p>
+          </div>
+
+          <DialogFooter className="pt-4">
+            <Button
               type="button"
-              className="button secondary"
+              variant="outline"
               onClick={onClose}
               disabled={updateTicketMutation.isPending}
             >
               Hủy
-            </button>
-          </div>
+            </Button>
+            <Button type="submit" disabled={updateTicketMutation.isPending}>
+              {updateTicketMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

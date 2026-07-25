@@ -4,6 +4,18 @@ import axios from "axios";
 import { useCreateTicketMutation } from "../api/use-create-ticket-mutation";
 import { useEquipmentQuery } from "../api/use-equipment-query";
 import type { TicketPriority } from "../../../entities/ticket/model/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 const PRIORITIES: TicketPriority[] = ["Low", "Medium", "High", "Critical"];
 
@@ -20,8 +32,6 @@ export function CreateTicketModal({ isOpen, onClose }: { isOpen: boolean; onClos
   );
 
   const availableEquipment = (equipmentPage?.items ?? []).filter((eq) => eq.status !== "Retired");
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,42 +65,51 @@ export function CreateTicketModal({ isOpen, onClose }: { isOpen: boolean; onClos
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h2>Tạo Ticket Mới</h2>
-        <p className="section-lead">
-          Điền thông tin để báo cáo sự cố hoặc yêu cầu bảo trì thiết bị.
-        </p>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Tạo Ticket Mới</DialogTitle>
+          <DialogDescription>
+            Điền thông tin để báo cáo sự cố hoặc yêu cầu bảo trì thiết bị.
+          </DialogDescription>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="stack spaced">
-          <label className="field">
-            <span>Tiêu đề</span>
-            <input
+        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="create-title">
+              Tiêu đề <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="create-title"
               type="text"
-              className="input"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ví dụ: Máy in kẹt giấy"
               required
             />
-          </label>
+          </div>
 
-          <label className="field">
-            <span>Mô tả chi tiết</span>
-            <textarea
-              className="textarea"
+          <div className="space-y-1.5">
+            <Label htmlFor="create-description">
+              Mô tả chi tiết <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              id="create-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Mô tả rõ tình trạng..."
+              placeholder="Mô tả rõ tình trạng sự cố..."
               required
               rows={3}
             />
-          </label>
+          </div>
 
-          <label className="field">
-            <span>Thiết bị</span>
+          <div className="space-y-1.5">
+            <Label htmlFor="create-equipment">
+              Thiết bị <span className="text-destructive">*</span>
+            </Label>
             <select
-              className="select"
+              id="create-equipment"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               value={equipmentId}
               onChange={(e) => setEquipmentId(e.target.value === "" ? "" : Number(e.target.value))}
               required
@@ -105,12 +124,13 @@ export function CreateTicketModal({ isOpen, onClose }: { isOpen: boolean; onClos
                 </option>
               ))}
             </select>
-          </label>
+          </div>
 
-          <label className="field">
-            <span>Mức độ ưu tiên (Tùy chọn)</span>
+          <div className="space-y-1.5">
+            <Label htmlFor="create-priority">Mức độ ưu tiên (Tùy chọn)</Label>
             <select
-              className="select"
+              id="create-priority"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               value={priority}
               onChange={(e) => setPriority(e.target.value as TicketPriority | "")}
             >
@@ -121,27 +141,23 @@ export function CreateTicketModal({ isOpen, onClose }: { isOpen: boolean; onClos
                 </option>
               ))}
             </select>
-          </label>
+          </div>
 
-          <div className="button-row spaced">
-            <button
-              type="submit"
-              className="button primary"
-              disabled={createTicketMutation.isPending || isEquipmentLoading}
-            >
-              {createTicketMutation.isPending ? "Đang xử lý..." : "Tạo mới"}
-            </button>
-            <button
+          <DialogFooter className="pt-4">
+            <Button
               type="button"
-              className="button secondary"
+              variant="outline"
               onClick={onClose}
               disabled={createTicketMutation.isPending}
             >
               Hủy
-            </button>
-          </div>
+            </Button>
+            <Button type="submit" disabled={createTicketMutation.isPending || isEquipmentLoading}>
+              {createTicketMutation.isPending ? "Đang xử lý..." : "Tạo mới"}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
