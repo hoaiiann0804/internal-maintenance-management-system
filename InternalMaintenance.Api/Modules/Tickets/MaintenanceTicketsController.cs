@@ -51,11 +51,12 @@ public class MaintenanceTicketsController : ControllerBase
         {
             return query;
         }
-        // Manager chỉ xem ticket thuộc phòng ban mình quản lý 
+        // Manager chỉ xem ticket thuộc phòng ban mình quản lý HOẶC thuộc quyền bảo trì của phòng mình
         if (role == UserRoles.Manager)
         {
             return query.Where(
-                ticket => ticket.Equipment!.DepartmentId == departmentId
+                ticket => ticket.Equipment!.DepartmentId == departmentId ||
+                          ticket.Equipment!.MaintenanceDepartmentId == departmentId
             );
         }
         // Staff chỉ được xem ticket do chính mình tạo
@@ -65,11 +66,11 @@ public class MaintenanceTicketsController : ControllerBase
                 ticket => ticket.CreatedByUserId == userId
             );
         }
-        // Staff chỉ được xem ticket được giao xử lý 
+        // Technician chỉ được xem ticket được giao xử lý HOẶC do mình tạo
         if (role == UserRoles.Technician)
         {
             return query.Where(
-                ticket => ticket.AssignedTechnicianId == userId
+                ticket => ticket.AssignedTechnicianId == userId || ticket.CreatedByUserId == userId
             );
         }
         // Role không hợp lệ

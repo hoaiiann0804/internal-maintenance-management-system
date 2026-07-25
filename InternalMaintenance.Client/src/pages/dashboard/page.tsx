@@ -1,13 +1,12 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Badge, Panel, Spinner, StatCard, UserProfile } from "../../shared/ui";
-import { useAuthStore } from "../../features/auth/model/auth-store";
-import { appRoutes } from "../../shared/config/routes";
-import { logout } from "../../shared/api/auth";
-import { ChangePasswordModal } from "../../features/auth/components/change-password-modal";
-import { useTicketsQuery } from "../../features/tickets/api/use-tickets-query";
-import { useDashboardSummaryQuery } from "../../features/dashboard/api/use-dashboard-summary-query";
-import { useDashboardChartsQuery } from "../../features/dashboard/api/use-dashboard-charts-query";
+import { Link } from "react-router-dom";
+import { appRoutes } from "@/shared/config/routes";
+import { useTicketsQuery } from "@/features/tickets/api/use-tickets-query";
+import { useDashboardSummaryQuery } from "@/features/dashboard/api/use-dashboard-summary-query";
+import { useDashboardChartsQuery } from "@/features/dashboard/api/use-dashboard-charts-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Ticket, Wrench, Users, Building2, ArrowRight, Clock } from "lucide-react";
 import {
   PieChart,
   Pie,
@@ -21,13 +20,12 @@ import {
   CartesianGrid,
 } from "recharts";
 
-const STATUS_WORKFLOW: Array<{ status: string; label: string }> = [
-  { status: "Pending", label: "Pending — Chờ tiếp nhận" },
-  { status: "Assigned", label: "Assigned — Đã phân công" },
-  { status: "InProgress", label: "InProgress — Đang xử lý" },
-  { status: "Resolved", label: "Resolved — Đã xử lý" },
-  { status: "Closed", label: "Closed — Đã đóng" },
-  { status: "Cancelled", label: "Cancelled — Đã hủy" },
+const STATUS_WORKFLOW: Array<{ status: string; label: string; desc: string }> = [
+  { status: "Pending", label: "Chờ tiếp nhận", desc: "Ticket mới tạo, chờ phân công" },
+  { status: "Assigned", label: "Đã phân công", desc: "Kỹ thuật viên đã được gán" },
+  { status: "InProgress", label: "Đang xử lý", desc: "Đang tiến hành sửa chữa/bảo trì" },
+  { status: "Resolved", label: "Đã xử lý", desc: "Sửa xong, chờ xác nhận" },
+  { status: "Closed", label: "Đã đóng", desc: "Yêu cầu đã hoàn tất hoàn toàn" },
 ];
 
 const formatDateTime = (value: string | null | undefined) => {
@@ -38,257 +36,277 @@ const formatDateTime = (value: string | null | undefined) => {
   }).format(new Date(value));
 };
 
+const CHART_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
+
 export function DashboardPage() {
-  const session = useAuthStore((state) => state.session);
-  const signOut = useAuthStore((state) => state.signOut);
-  const navigate = useNavigate();
-
-  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
-  const isAdmin = session?.user.roleName === "Admin";
-
   const { data: summary, isLoading: isSummaryLoading } = useDashboardSummaryQuery();
   const { data: charts, isLoading: isChartsLoading } = useDashboardChartsQuery();
-  const { data: ticketsPage, isLoading: isTicketsLoading } = useTicketsQuery({ pageSize: 5 });
+  const { data: ticketsPage, isLoading: isTicketsLoading } = useTicketsQuery({ pageSize: 6 });
 
   const recentTickets = ticketsPage?.items ?? [];
-  const isStatsLoading = isSummaryLoading || isChartsLoading || isTicketsLoading;
 
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"];
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "Resolved":
+      case "Closed":
+        return <Badge variant="success">{status}</Badge>;
+      case "InProgress":
+        return <Badge variant="default">{status}</Badge>;
+      case "Assigned":
+        return <Badge variant="warning">{status}</Badge>;
+      case "Cancelled":
+        return <Badge variant="outline">{status}</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
 
-  const handleLogout = async (): Promise<void> => {
-    const refreshToken = session?.refreshToken;
-
-    try {
-      if (refreshToken) {
-        await logout(refreshToken);
-      }
-    } finally {
-      signOut();
-      navigate(appRoutes.login);
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case "Critical":
+      case "High":
+        return <Badge variant="destructive">{priority}</Badge>;
+      case "Medium":
+        return <Badge variant="warning">{priority}</Badge>;
+      default:
+        return <Badge variant="outline">{priority}</Badge>;
     }
   };
 
   return (
-    <div className="dashboard">
-      <header className="topbar">
-        <div className="brand">
-          <div className="brand-mark">IM</div>
-          <div>
-            <strong>Management Console</strong>
-            <span>Dashboard overview</span>
-          </div>
+    <div className="space-y-6">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border rounded-2xl p-6 shadow-sm">
+        <div>
+          <span className="text-xs font-semibold text-primary uppercase tracking-wider">Overview</span>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground mt-1">Dashboard overview</h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Tổng quan dữ liệu hệ thống quản lý bảo trì nội bộ — dữ liệu thời gian thực.
+          </p>
         </div>
-
-        <nav className="tabs" aria-label="Modules">
-          <Link className="tab active" to={appRoutes.dashboard}>
-            Dashboard
-          </Link>
-          <Link className="tab" to={appRoutes.tickets}>
-            Tickets
-          </Link>
-          <Link className="tab" to={appRoutes.equipment}>
-            Equipment
-          </Link>
-          {isAdmin && (
-            <Link className="tab" to={appRoutes.users}>
-              Users
+        <div className="flex items-center gap-3 shrink-0">
+          <Button asChild variant="default" size="sm">
+            <Link to={appRoutes.tickets} className="gap-2">
+              <Ticket className="h-4 w-4" />
+              <span>Quản lý Tickets</span>
             </Link>
-          )}
-          {isAdmin && (
-            <Link className="tab" to={appRoutes.departments}>
-              Departments
-            </Link>
-          )}
-        </nav>
+          </Button>
+        </div>
+      </div>
 
-        <UserProfile
-          fullName={session?.user.fullName}
-          roleName={session?.user.roleName}
-          onLogout={handleLogout}
-          onChangePassword={() => setIsChangePasswordOpen(true)}
-        />
-      </header>
+      {/* Top Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase">Open Tickets</p>
+              <h3 className="text-2xl font-bold mt-1">
+                {isSummaryLoading ? <span className="text-muted text-base">...</span> : (summary?.openTickets ?? 0)}
+              </h3>
+              <p className="text-[11px] text-muted-foreground mt-1">Yêu cầu chưa hoàn thành</p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center">
+              <Ticket className="h-6 w-6" />
+            </div>
+          </CardContent>
+        </Card>
 
-      <div className="layout">
-        <main className="main-panel">
-          <div className="view-grid">
-            <Panel>
-              <span className="eyebrow">Overview</span>
-              <h2>Dashboard overview</h2>
-              <p className="section-lead">
-                Tổng quan dữ liệu hệ thống quản lý bảo trì nội bộ — dữ liệu được cập nhật từ API
-                thời gian thực.
-              </p>
-              {isStatsLoading || !summary ? (
-                <Spinner />
-              ) : (
-                <div className="stats-grid compact">
-                  <StatCard label="Open tickets" value={summary.openTickets} />
-                  <StatCard label="Active equipment" value={summary.activeEquipment} />
-                  <StatCard label="Technicians" value={summary.totalTechnicians} />
-                  <StatCard label="Departments" value={summary.totalDepartments} />
-                </div>
-              )}
-            </Panel>
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase">Active Equipment</p>
+              <h3 className="text-2xl font-bold mt-1">
+                {isSummaryLoading ? <span className="text-muted text-base">...</span> : (summary?.activeEquipment ?? 0)}
+              </h3>
+              <p className="text-[11px] text-muted-foreground mt-1">Thiết bị đang hoạt động</p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+              <Wrench className="h-6 w-6" />
+            </div>
+          </CardContent>
+        </Card>
 
-            <Panel>
-              <span className="eyebrow">Analytics</span>
-              <h2>Biểu đồ phân tích</h2>
-              {isChartsLoading ? (
-                <Spinner />
-              ) : !charts ? (
-                <p style={{ color: "var(--bad)" }}>
-                  Không thể tải dữ liệu biểu đồ do lỗi API. Vui lòng kiểm tra lại Backend.
-                </p>
-              ) : (
-                <div
-                  className="filter-grid"
-                  style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}
-                >
-                  <div
-                    className="mini-card"
-                    style={{ height: "300px", display: "flex", flexDirection: "column" }}
-                  >
-                    <strong>Tickets theo trạng thái</strong>
-                    <div style={{ flex: 1, minHeight: 0, marginTop: 12 }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={charts.ticketsByStatus}
-                            dataKey="value"
-                            nameKey="name"
-                            cx="50%"
-                            cy="50%"
-                            outerRadius={80}
-                            label
-                          >
-                            {charts.ticketsByStatus.map((_, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                        </PieChart>
-                      </ResponsiveContainer>
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase">Technicians</p>
+              <h3 className="text-2xl font-bold mt-1">
+                {isSummaryLoading ? <span className="text-muted text-base">...</span> : (summary?.totalTechnicians ?? 0)}
+              </h3>
+              <p className="text-[11px] text-muted-foreground mt-1">Kỹ thuật viên phụ trách</p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+              <Users className="h-6 w-6" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase">Departments</p>
+              <h3 className="text-2xl font-bold mt-1">
+                {isSummaryLoading ? <span className="text-muted text-base">...</span> : (summary?.totalDepartments ?? 0)}
+              </h3>
+              <p className="text-[11px] text-muted-foreground mt-1">Phòng ban sử dụng</p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center">
+              <Building2 className="h-6 w-6" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Analytics Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="flex flex-col">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold">Tickets theo trạng thái</CardTitle>
+            <CardDescription className="text-xs">Phân bổ các yêu cầu bảo trì theo tiến độ xử lý</CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 min-h-[280px]">
+            {isChartsLoading ? (
+              <div className="h-full flex items-center justify-center">
+                <div className="h-6 w-6 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+              </div>
+            ) : !charts ? (
+              <p className="text-xs text-destructive text-center py-8">Không thể tải dữ liệu biểu đồ.</p>
+            ) : charts.ticketsByStatus.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-xs text-muted-foreground">Chưa có dữ liệu ticket</div>
+            ) : (
+              <div className="h-[260px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={charts.ticketsByStatus}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={85}
+                      paddingAngle={4}
+                      label={({ name, percent }) => `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`}
+                    >
+                      {charts.ticketsByStatus.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "var(--background)", borderRadius: "8px", borderColor: "var(--border)" }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="flex flex-col">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold">Thiết bị theo phòng ban</CardTitle>
+            <CardDescription className="text-xs">Số lượng thiết bị phân bổ theo các phòng ban</CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 min-h-[280px]">
+            {isChartsLoading ? (
+              <div className="h-full flex items-center justify-center">
+                <div className="h-6 w-6 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+              </div>
+            ) : !charts ? (
+              <p className="text-xs text-destructive text-center py-8">Không thể tải dữ liệu biểu đồ.</p>
+            ) : charts.equipmentByDepartment.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-xs text-muted-foreground">Chưa có dữ liệu thiết bị</div>
+            ) : (
+              <div className="h-[260px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={charts.equipmentByDepartment} margin={{ top: 20, right: 20, left: -10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "var(--background)", borderRadius: "8px", borderColor: "var(--border)" }}
+                    />
+                    <Bar dataKey="value" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Grid: Recent Tickets (Left 8 Cols) & Workflow Steps (Right 4 Cols) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Recent Tickets List */}
+        <Card className="lg:col-span-8">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <div>
+              <CardTitle className="text-base font-semibold">Ticket mới nhất</CardTitle>
+              <CardDescription className="text-xs">Các yêu cầu bảo trì vừa được tạo gần đây</CardDescription>
+            </div>
+            <Button asChild variant="ghost" size="sm" className="text-xs gap-1 text-primary">
+              <Link to={appRoutes.tickets}>
+                <span>Xem tất cả</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {isTicketsLoading ? (
+              <div className="py-8 flex justify-center">
+                <div className="h-6 w-6 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+              </div>
+            ) : recentTickets.length > 0 ? (
+              <div className="divide-y border rounded-lg overflow-hidden">
+                {recentTickets.map((ticket) => (
+                  <div key={ticket.id} className="p-3.5 flex items-center justify-between gap-4 hover:bg-muted/40 transition-colors">
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono font-semibold text-primary">{ticket.ticketCode}</span>
+                        <h4 className="text-xs font-semibold text-foreground truncate">{ticket.title}</h4>
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatDateTime(ticket.createdAt)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <div
-                    className="mini-card"
-                    style={{ height: "300px", display: "flex", flexDirection: "column" }}
-                  >
-                    <strong>Thiết bị theo phòng ban</strong>
-                    <div style={{ flex: 1, minHeight: 0, marginTop: 12 }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={charts.equipmentByDepartment}
-                          margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis />
-                          <Tooltip />
-                          <Bar dataKey="value" fill="#8884d8" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </Panel>
 
-            <Panel>
-              <span className="eyebrow">Workflow</span>
-              <h2>Ticket life cycle</h2>
-              <div className="stack">
-                {STATUS_WORKFLOW.map((step, index) => (
-                  <div key={step.status} className="mini-card">
-                    <div className="card-row">
-                      <strong>
-                        {index + 1}. {step.label}
-                      </strong>
-                      <Badge
-                        tone={
-                          index === 0
-                            ? "primary"
-                            : index === STATUS_WORKFLOW.length - 1
-                              ? "good"
-                              : "default"
-                        }
-                      >
-                        {index === 0
-                          ? "entry"
-                          : index === STATUS_WORKFLOW.length - 1
-                            ? "finish"
-                            : "step"}
-                      </Badge>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {getPriorityBadge(ticket.priority)}
+                      {getStatusBadge(ticket.status)}
                     </div>
                   </div>
                 ))}
               </div>
-            </Panel>
+            ) : (
+              <p className="text-xs text-muted-foreground text-center py-8">Chưa có ticket nào.</p>
+            )}
+          </CardContent>
+        </Card>
 
-            <Panel>
-              <span className="eyebrow">Recent</span>
-              <h2>Ticket mới nhất</h2>
-              {isTicketsLoading ? (
-                <Spinner />
-              ) : recentTickets.length > 0 ? (
-                <div className="timeline">
-                  {recentTickets.map((ticket) => (
-                    <article key={ticket.id} className="timeline-item">
-                      <strong>
-                        {ticket.ticketCode} — {ticket.title}
-                      </strong>
-                      <span>
-                        <Badge
-                          tone={
-                            ticket.status === "Resolved" || ticket.status === "Closed"
-                              ? "good"
-                              : ticket.priority === "Critical" || ticket.priority === "High"
-                                ? "bad"
-                                : "default"
-                          }
-                        >
-                          {ticket.status}
-                        </Badge>{" "}
-                        · {ticket.priority} · {formatDateTime(ticket.createdAt)}
-                      </span>
-                    </article>
-                  ))}
+        {/* Ticket Lifecycle Workflow */}
+        <Card className="lg:col-span-4">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold">Ticket Life Cycle</CardTitle>
+            <CardDescription className="text-xs">Quy trình xử lý một yêu cầu bảo trì</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {STATUS_WORKFLOW.map((step, idx) => (
+              <div key={step.status} className="flex items-start gap-3 p-2.5 rounded-lg border bg-muted/20 hover:bg-muted/50 transition-colors">
+                <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0 mt-0.5">
+                  {idx + 1}
                 </div>
-              ) : (
-                <p className="section-lead">Chưa có ticket nào.</p>
-              )}
-            </Panel>
-          </div>
-        </main>
-
-        <aside className="inspector">
-          {/* <Panel>
-            <span className="eyebrow">Next step</span>
-            <h3>Go to Tickets</h3>
-            <p className="section-lead">
-              Truy cập trang Tickets để tạo mới, phân công, hoặc quản lý tiến trình xử lý.
-            </p>
-            <Link className="button primary" to={appRoutes.tickets}>
-              Open tickets
-            </Link>
-          </Panel> */}
-
-          {/* <Panel>
-            <span className="eyebrow">API layer</span>
-            <h3>Kết nối hoàn tất</h3>
-            <p className="section-lead">
-              Dashboard đang hiển thị dữ liệu thời gian thực từ backend API — không còn sử dụng mock
-              data.
-            </p>
-          </Panel> */}
-        </aside>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-foreground">{step.label}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{step.desc}</p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       </div>
-
-      <ChangePasswordModal
-        isOpen={isChangePasswordOpen}
-        onClose={() => setIsChangePasswordOpen(false)}
-      />
     </div>
   );
 }
