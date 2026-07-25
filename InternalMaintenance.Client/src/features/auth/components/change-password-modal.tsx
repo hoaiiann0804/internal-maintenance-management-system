@@ -2,6 +2,17 @@ import { useState } from "react";
 import { toast } from "sonner";
 import axios from "axios";
 import { useChangePasswordMutation } from "../api/use-change-password-mutation";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type Props = {
   isOpen: boolean;
@@ -24,8 +35,6 @@ export function ChangePasswordModal({ isOpen, onClose }: Props) {
   }
 
   const changePasswordMutation = useChangePasswordMutation();
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,71 +71,74 @@ export function ChangePasswordModal({ isOpen, onClose }: Props) {
     }
   };
 
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h2>Đổi Mật Khẩu Cá Nhân</h2>
-        <p className="section-lead">Nhập mật khẩu cũ và thiết lập mật khẩu mới.</p>
+  const isPending = changePasswordMutation.isPending;
 
-        <form onSubmit={handleSubmit} className="stack spaced">
-          <label className="field">
-            <span>Mật khẩu cũ</span>
-            <input
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Đổi Mật Khẩu Cá Nhân</DialogTitle>
+          <DialogDescription>
+            Nhập mật khẩu hiện tại và thiết lập mật khẩu mới cho tài khoản của bạn.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="change-current-pass">
+              Mật khẩu hiện tại <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="change-current-pass"
               type="password"
-              className="input"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Nhập mật khẩu hiện tại"
               required
-              disabled={changePasswordMutation.isPending}
+              disabled={isPending}
             />
-          </label>
+          </div>
 
-          <label className="field">
-            <span>Mật khẩu mới</span>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="change-new-pass">
+              Mật khẩu mới <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="change-new-pass"
               type="password"
-              className="input"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Mật khẩu phải từ 8 ký tự"
+              placeholder="Ít nhất 8 ký tự"
               required
-              disabled={changePasswordMutation.isPending}
+              disabled={isPending}
             />
-          </label>
+          </div>
 
-          <label className="field">
-            <span>Xác nhận mật khẩu mới</span>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="change-confirm-pass">
+              Xác nhận mật khẩu mới <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="change-confirm-pass"
               type="password"
-              className="input"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Nhập lại mật khẩu mới"
               required
-              disabled={changePasswordMutation.isPending}
+              disabled={isPending}
             />
-          </label>
-
-          <div className="button-row spaced">
-            <button
-              type="submit"
-              className="button primary"
-              disabled={changePasswordMutation.isPending}
-            >
-              {changePasswordMutation.isPending ? "Đang xử lý..." : "Lưu thay đổi"}
-            </button>
-            <button
-              type="button"
-              className="button secondary"
-              onClick={onClose}
-              disabled={changePasswordMutation.isPending}
-            >
-              Hủy
-            </button>
           </div>
+
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
+              Hủy
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Đang xử lý..." : "Lưu thay đổi"}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
