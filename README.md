@@ -115,6 +115,33 @@ The UI is built as a complete operational console with API hooks for authenticat
 - Light and Dark mode toggle with system preference support
 - responsive tables, modal dialogs, and status badges
 
+## UI & Features Screenshots
+
+### 1. Dashboard & Analytics
+Overview of maintenance tickets, KPI summaries, and equipment status.
+![Dashboard UI](./InternalMaintenance.Client/public/screenshots/dashboard.png)
+![Dashboard UI](./InternalMaintenance.Client/public/screenshots/dashboard2.png)
+
+### 2. Ticket Management
+List of maintenance tickets with color-coded status badges and priority indicators.
+*(Replace this line with your ticket list screenshot, e.g., `![Tickets List](./InternalMaintenance.Client/public/screenshots/tickets-list.png)`)*
+
+### 3. Ticket Details & Workflow
+Detailed view of a ticket showing status transitions, assignee, and discussion thread.
+*(Replace this line with your ticket detail screenshot, e.g., `![Ticket Details](./InternalMaintenance.Client/public/screenshots/ticket-detail.png)`)*
+
+### 4. File Attachments
+File upload zone and preview modal for images, videos, and PDF documents attached to a ticket.
+*(Replace this line with your attachments screenshot, e.g., `![Attachments](./InternalMaintenance.Client/public/screenshots/attachments.png)`)*
+
+### 5. Equipment Management
+Asset tracking interface with department assignment and active/maintenance status toggle.
+*(Replace this line with your equipment list screenshot, e.g., `![Equipment Management](./InternalMaintenance.Client/public/screenshots/equipment-list.png)`)*
+
+### 6. User Management & Access Control
+Admin directory for managing users, roles (Admin/Manager/Staff/Technician), and department assignments.
+*(Replace this line with your user management screenshot, e.g., `![User Management](./InternalMaintenance.Client/public/screenshots/user-management.png)`)*
+
 ## Business Workflow
 
 ```mermaid
