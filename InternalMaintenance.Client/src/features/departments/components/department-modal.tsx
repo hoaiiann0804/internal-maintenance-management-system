@@ -6,6 +6,18 @@ import {
   useUpdateDepartmentMutation,
 } from "../api/use-department-mutations";
 import type { Department } from "../../../entities/department/model/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 type Props = {
   department: Department | null; // null if creating
@@ -36,8 +48,6 @@ export function DepartmentModal({ department, isOpen, onClose }: Props) {
 
   const createMutation = useCreateDepartmentMutation();
   const updateMutation = useUpdateDepartmentMutation(department?.id ?? 0);
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,67 +84,70 @@ export function DepartmentModal({ department, isOpen, onClose }: Props) {
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h2>{isEdit ? `Chỉnh sửa: ${department.name}` : "Thêm Phòng Ban Mới"}</h2>
-        <p className="section-lead">Nhập thông tin cơ bản của phòng ban trong tổ chức.</p>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>
+            {isEdit ? `Chỉnh sửa: ${department.name}` : "Thêm Phòng Ban Mới"}
+          </DialogTitle>
+          <DialogDescription>Nhập thông tin cơ bản của phòng ban trong tổ chức.</DialogDescription>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="stack spaced">
-          <label className="field">
-            <span>Tên phòng ban</span>
-            <input
+        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="dept-name">
+              Tên phòng ban <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="dept-name"
               type="text"
-              className="input"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ví dụ: Phòng Kỹ Thuật"
               required
               disabled={isPending}
             />
-          </label>
+          </div>
 
-          <label className="field">
-            <span>Mô tả</span>
-            <textarea
-              className="textarea"
+          <div className="space-y-1.5">
+            <Label htmlFor="dept-desc">Mô tả</Label>
+            <Textarea
+              id="dept-desc"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Mô tả chức năng, nhiệm vụ của phòng ban..."
               rows={3}
               disabled={isPending}
             />
-          </label>
+          </div>
 
-          <label
-            className="checkbox-field"
-            style={{ display: "flex", alignItems: "center", gap: "8px" }}
-          >
+          <div className="flex items-center space-x-2.5 pt-1">
             <input
+              id="dept-maint-team"
               type="checkbox"
               checked={isMaintenanceTeam}
               onChange={(e) => setIsMaintenanceTeam(e.target.checked)}
               disabled={isPending}
+              className="h-4 w-4 rounded border-input text-primary focus:ring-primary accent-primary cursor-pointer"
             />
-            <span style={{ fontWeight: 600 }}>
-              Là bộ phận bảo trì (Sẽ xuất hiện trong danh sách Phòng ban bảo trì thiết bị)
-            </span>
-          </label>
-
-          <div className="button-row spaced">
-            <button type="submit" className="button primary" disabled={isPending}>
-              {isPending ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Tạo mới"}
-            </button>
-            <button
-              type="button"
-              className="button secondary"
-              onClick={onClose}
-              disabled={isPending}
+            <Label
+              htmlFor="dept-maint-team"
+              className="text-xs font-semibold cursor-pointer leading-tight"
             >
-              Hủy
-            </button>
+              Là bộ phận bảo trì (Sẽ xuất hiện trong danh sách Phòng ban bảo trì thiết bị)
+            </Label>
           </div>
+
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
+              Hủy
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Tạo mới"}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
