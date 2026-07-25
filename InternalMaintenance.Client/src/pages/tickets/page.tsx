@@ -10,24 +10,27 @@ import { useTicketsQuery } from "../../features/tickets/api/use-tickets-query";
 import { CreateTicketModal } from "../../features/tickets/components/create-ticket-modal";
 import { EditTicketModal } from "../../features/tickets/components/edit-ticket-modal";
 import { TicketActionPanel } from "../../features/tickets/components/ticket-action-panel";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  TicketSlaBadge,
+  TicketSlaDetailBar,
+} from "../../features/tickets/components/ticket-sla-badge";
+import { calculateSlaInfo } from "../../features/tickets/lib/sla-utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Search, Plus, Wrench, User, Calendar, Edit3, History } from "lucide-react";
 
-const formatDateTime = (value: string | null | undefined) => {
-  if (!value) return "N/A";
-  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(
-    new Date(value),
-  );
-};
+import { formatDateTime } from "@/shared/lib/date-utils";
+
+type SlaFilterType = "All" | "InSLA" | "NearBreach" | "Breached" | "MetSLA";
 
 export function TicketsPage() {
   const [search, setSearch] = useState("");
   const [ticketStatus, setTicketStatus] = useState<"All" | TicketStatus>("All");
   const [ticketPriority, setTicketPriority] = useState<"All" | TicketPriority>("All");
+  const [slaFilter, setSlaFilter] = useState<SlaFilterType>("All");
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -43,29 +46,39 @@ export function TicketsPage() {
 
   const tickets = useMemo(() => ticketsPage?.items ?? [], [ticketsPage?.items]);
   const filteredTickets = useMemo(() => {
+    let result = tickets;
+
     const keyword = search.trim().toLowerCase();
-    if (!keyword) return tickets;
-
-    return tickets.filter((ticket) =>
-      [
-        ticket.ticketCode,
-        ticket.title,
-        ticket.description,
-        ticket.equipmentName,
-        ticket.equipmentCode,
-        ticket.createdByUserName,
-      ]
-        .filter(Boolean)
-        .some((value) => value.toLowerCase().includes(keyword)),
-    );
-  }, [search, tickets]);
-
-  const activeTicketId = useMemo(() => {
-    if (selectedTicketId && filteredTickets.some((ticket) => ticket.id === selectedTicketId)) {
-      return selectedTicketId;
+    if (keyword) {
+      result = result.filter((ticket) =>
+        [
+          ticket.ticketCode,
+          ticket.title,
+          ticket.description,
+          ticket.equipmentName,
+          ticket.equipmentCode,
+          ticket.createdByUserName,
+        ]
+          .filter(Boolean)
+          .some((value) => value.toLowerCase().includes(keyword)),
+      );
     }
-    return filteredTickets[0]?.id ?? null;
-  }, [selectedTicketId, filteredTickets]);
+
+    if (slaFilter !== "All") {
+      result = result.filter((ticket) => {
+        const sla = calculateSlaInfo(ticket);
+        if (slaFilter === "Breached") return sla.isBreached || sla.statusType === "MissedSLA";
+        if (slaFilter === "NearBreach") return sla.statusType === "NearBreach";
+        if (slaFilter === "InSLA") return sla.statusType === "InSLA";
+        if (slaFilter === "MetSLA") return sla.statusType === "MetSLA";
+        return true;
+      });
+    }
+
+    return result;
+  }, [tickets, search, slaFilter]);
+
+  const activeTicketId = selectedTicketId ?? filteredTickets[0]?.id ?? null;
 
   const {
     data: selectedTicket,
@@ -107,11 +120,13 @@ export function TicketsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border rounded-2xl p-6 shadow-sm">
         <div>
           <span className="text-xs font-semibold text-primary uppercase tracking-wider">
-            Workspace
+            Tickets Management
           </span>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground mt-1">Ticket Queue</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground mt-1">
+            Danh sách yêu cầu bảo trì
+          </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Quản lý, phân công và theo dõi tiến độ giải quyết sự cố thiết bị nội bộ.
+            Theo dõi tiến độ xử lý sự cố, phân công kỹ thuật viên và giám sát thời gian SLA.
           </p>
         </div>
         <Button onClick={() => setIsCreateModalOpen(true)} className="gap-1.5 shrink-0">
@@ -120,18 +135,20 @@ export function TicketsPage() {
         </Button>
       </div>
 
-      {/* Main 2-Column Split View */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Master Queue List (5 cols) */}
-        <Card className="lg:col-span-5 flex flex-col max-h-[850px]">
-          <CardHeader className="pb-3 border-b">
-            <CardTitle className="text-base font-semibold">Danh sách Ticket</CardTitle>
-            <CardDescription className="text-xs">
-              Tổng cộng {filteredTickets.length} ticket trong bộ lọc hiện tại
-            </CardDescription>
+      {/* Main Grid: Left Master List (5 cols) & Right Detail (7 cols) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Master Tickets List (5 cols) */}
+        <Card className="lg:col-span-5 flex flex-col h-[calc(100vh-16rem)]">
+          <CardHeader className="pb-3 border-b space-y-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold">Tickets</CardTitle>
+              <Badge variant="secondary" className="text-xs">
+                {filteredTickets.length} / {tickets.length}
+              </Badge>
+            </div>
 
-            {/* Filter Bar */}
-            <div className="space-y-3 pt-2">
+            {/* Filter controls */}
+            <div className="space-y-2">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
@@ -143,11 +160,11 @@ export function TicketsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-1.5">
                 <div className="space-y-1">
-                  <Label className="text-[11px] text-muted-foreground">Trạng thái</Label>
+                  <Label className="text-[10px] text-muted-foreground">Trạng thái</Label>
                   <select
-                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 text-[11px] shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     value={ticketStatus}
                     onChange={(e) => setTicketStatus(e.target.value as TicketStatus | "All")}
                   >
@@ -160,9 +177,9 @@ export function TicketsPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <Label className="text-[11px] text-muted-foreground">Độ ưu tiên</Label>
+                  <Label className="text-[10px] text-muted-foreground">Ưu tiên</Label>
                   <select
-                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 text-[11px] shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     value={ticketPriority}
                     onChange={(e) => setTicketPriority(e.target.value as TicketPriority | "All")}
                   >
@@ -171,6 +188,31 @@ export function TicketsPage() {
                         {p}
                       </option>
                     ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">SLA</Label>
+                  <select
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 text-[11px] shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-semibold text-primary"
+                    value={slaFilter}
+                    onChange={(e) => setSlaFilter(e.target.value as SlaFilterType)}
+                  >
+                    <option value="All" className="bg-background text-foreground">
+                      Tất cả SLA
+                    </option>
+                    <option value="InSLA" className="bg-background text-foreground">
+                      Trong SLA
+                    </option>
+                    <option value="NearBreach" className="bg-background text-foreground">
+                      Sắp hết hạn
+                    </option>
+                    <option value="Breached" className="bg-background text-foreground">
+                      Quá hạn (Breached)
+                    </option>
+                    <option value="MetSLA" className="bg-background text-foreground">
+                      Đạt SLA
+                    </option>
                   </select>
                 </div>
               </div>
@@ -204,7 +246,7 @@ export function TicketsPage() {
                       <span className="text-xs font-mono font-bold text-primary">
                         {ticket.ticketCode}
                       </span>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
                         {getPriorityBadge(ticket.priority)}
                         {getStatusBadge(ticket.status)}
                       </div>
@@ -215,11 +257,11 @@ export function TicketsPage() {
                     </h4>
 
                     <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
-                      <span className="truncate max-w-[160px] flex items-center gap-1">
+                      <span className="truncate max-w-[140px] flex items-center gap-1">
                         <Wrench className="h-3 w-3 shrink-0" />
                         {ticket.equipmentName}
                       </span>
-                      <span className="shrink-0">{formatDateTime(ticket.createdAt)}</span>
+                      <TicketSlaBadge ticket={ticket} />
                     </div>
                   </button>
                 );
@@ -248,136 +290,152 @@ export function TicketsPage() {
             </Card>
           ) : selectedTicket ? (
             <>
-              {/* Selected Ticket Main Card */}
+              {/* Ticket SLA Countdown / Status Bar */}
+              <TicketSlaDetailBar ticket={selectedTicket} />
+
+              {/* Ticket Main Info Card */}
               <Card>
-                <CardHeader className="pb-4 border-b">
+                <CardHeader className="pb-3 border-b">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
+                    <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
+                        <span className="text-xs font-mono font-bold text-primary">
                           {selectedTicket.ticketCode}
                         </span>
-                        {getStatusBadge(selectedTicket.status)}
                         {getPriorityBadge(selectedTicket.priority)}
+                        {getStatusBadge(selectedTicket.status)}
                       </div>
-                      <h2 className="text-xl font-bold tracking-tight text-foreground mt-2">
+                      <CardTitle className="text-lg font-bold text-foreground">
                         {selectedTicket.title}
-                      </h2>
+                      </CardTitle>
                     </div>
 
-                    {(selectedTicket.status === "Pending" ||
-                      selectedTicket.status === "Assigned") && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsEditModalOpen(true)}
-                        className="gap-1.5 shrink-0"
-                      >
-                        <Edit3 className="h-3.5 w-3.5" />
-                        <span>Chỉnh sửa</span>
-                      </Button>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground pt-3">
-                    <span className="flex items-center gap-1.5">
-                      <User className="h-3.5 w-3.5 text-primary" />
-                      Tạo bởi:{" "}
-                      <strong className="text-foreground">
-                        {selectedTicket.createdByUserName}
-                      </strong>
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1.5">
-                      <Calendar className="h-3.5 w-3.5 text-primary" />
-                      {formatDateTime(selectedTicket.createdAt)}
-                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsEditModalOpen(true)}
+                      className="gap-1.5 text-xs shrink-0 self-start sm:self-auto"
+                    >
+                      <Edit3 className="h-3.5 w-3.5" />
+                      <span>Chỉnh sửa</span>
+                    </Button>
                   </div>
                 </CardHeader>
 
-                <CardContent className="p-6 space-y-4">
-                  {/* Description Box */}
+                <CardContent className="p-5 space-y-4">
+                  {/* Meta Details Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-xl bg-muted/30 border text-xs">
+                    <div>
+                      <p className="text-[10px] uppercase font-semibold text-muted-foreground">
+                        Thiết bị
+                      </p>
+                      <p className="font-semibold text-foreground mt-0.5 truncate">
+                        {selectedTicket.equipmentCode} — {selectedTicket.equipmentName}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase font-semibold text-muted-foreground">
+                        Người yêu cầu
+                      </p>
+                      <p className="font-medium text-foreground mt-0.5 flex items-center gap-1">
+                        <User className="h-3 w-3 text-muted-foreground shrink-0" />
+                        {selectedTicket.createdByUserName}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase font-semibold text-muted-foreground">
+                        Kỹ thuật viên
+                      </p>
+                      <p className="font-medium text-foreground mt-0.5 flex items-center gap-1">
+                        <User className="h-3 w-3 text-muted-foreground shrink-0" />
+                        {selectedTicket.assignedTechnicianName || "Chưa phân công"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase font-semibold text-muted-foreground">
+                        Thời gian tạo
+                      </p>
+                      <p className="font-medium text-foreground mt-0.5 flex items-center gap-1">
+                        <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
+                        {formatDateTime(selectedTicket.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Ticket Description */}
                   <div className="space-y-1.5">
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase">
+                    <Label className="text-xs font-semibold text-muted-foreground">
                       Mô tả sự cố
-                    </h4>
-                    <div className="p-3.5 rounded-xl border bg-muted/20 text-xs leading-relaxed whitespace-pre-wrap">
+                    </Label>
+                    <div className="p-3.5 rounded-xl border bg-card text-xs text-foreground leading-relaxed whitespace-pre-wrap">
                       {selectedTicket.description}
                     </div>
                   </div>
 
-                  {/* Info Cards Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                    <div className="p-3 rounded-lg border bg-card space-y-1">
-                      <p className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1">
-                        <Wrench className="h-3.5 w-3.5 text-blue-500" /> Thiết bị
-                      </p>
-                      <p className="text-xs font-semibold text-foreground">
-                        {selectedTicket.equipmentCode} — {selectedTicket.equipmentName}
-                      </p>
-                    </div>
-
-                    <div className="p-3 rounded-lg border bg-card space-y-1">
-                      <p className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1">
-                        <User className="h-3.5 w-3.5 text-amber-500" /> Kỹ thuật viên phụ trách
-                      </p>
-                      <p className="text-xs font-semibold text-foreground">
-                        {selectedTicket.assignedTechnicianName ?? "Chưa phân công"}
+                  {/* Resolution note if any */}
+                  {selectedTicket.resolutionNote && (
+                    <div className="space-y-1.5 p-3 rounded-xl border bg-emerald-500/5 border-emerald-500/20 text-xs">
+                      <Label className="font-semibold text-emerald-700 dark:text-emerald-400">
+                        Ghi chú kết quả xử lý
+                      </Label>
+                      <p className="text-foreground leading-relaxed">
+                        {selectedTicket.resolutionNote}
                       </p>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  )}
 
-              {/* Ticket Action Panel (Assign, Transition Status, Attachments, Comments) */}
-              <TicketActionPanel ticket={selectedTicket} />
-
-              {/* Timeline Card */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <History className="h-4 w-4 text-primary" />
-                    <span>Lịch sử thay đổi (Timeline)</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="relative border-l border-muted pl-4 space-y-4 ml-2">
-                    {selectedTicket.history.map((item: TicketHistoryItem) => (
-                      <div key={item.id} className="relative">
-                        <div className="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-background" />
-                        <div className="text-xs space-y-0.5">
-                          <p className="font-semibold text-foreground">{item.status}</p>
-                          <p className="text-muted-foreground">
-                            {item.note && <span className="text-foreground">{item.note} · </span>}
-                            <span>{item.changedBy}</span> ·{" "}
-                            <span>{formatDateTime(item.changedAt)}</span>
-                          </p>
-                        </div>
+                  {/* History audit log */}
+                  {selectedTicket.history && selectedTicket.history.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t">
+                      <Label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                        <History className="h-3.5 w-3.5 text-primary" />
+                        <span>Lịch sử thay đổi trạng thái</span>
+                      </Label>
+                      <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                        {selectedTicket.history.map((h: TicketHistoryItem) => (
+                          <div
+                            key={h.id}
+                            className="text-[11px] p-2 rounded-lg border bg-muted/20 flex items-center justify-between gap-2"
+                          >
+                            <div>
+                              <span className="font-semibold text-foreground">{h.changedBy}</span>
+                              <span className="text-muted-foreground"> chuyển sang </span>
+                              {getStatusBadge(h.status)}
+                              {h.note && (
+                                <p className="text-muted-foreground italic mt-0.5">"{h.note}"</p>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-muted-foreground shrink-0">
+                              {formatDateTime(h.changedAt)}
+                            </span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
+
+              {/* Ticket Action Panel (Assign, Status Change, Attachments, Comments) */}
+              <TicketActionPanel ticket={selectedTicket} />
             </>
           ) : (
             <Card>
               <CardContent className="py-16 text-center text-xs text-muted-foreground">
-                Vui lòng chọn một ticket từ danh sách bên trái để xem chi tiết.
+                Chọn một ticket từ danh sách bên trái để xem chi tiết.
               </CardContent>
             </Card>
           )}
         </div>
       </div>
 
+      {/* Modals */}
       <CreateTicketModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
-      {isEditModalOpen && selectedTicket && (
-        <EditTicketModal
-          key={selectedTicket.id}
-          ticket={selectedTicket}
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-        />
-      )}
+      <EditTicketModal
+        ticket={selectedTicket ?? null}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+      />
     </div>
   );
 }

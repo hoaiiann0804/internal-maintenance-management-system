@@ -23,12 +23,7 @@ import {
   Calendar,
 } from "lucide-react";
 
-const formatDateTime = (value: string | null | undefined) => {
-  if (!value) return "N/A";
-  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(
-    new Date(value),
-  );
-};
+import { formatDateTime } from "@/shared/lib/date-utils";
 
 export function DepartmentsPage() {
   const session = useAuthStore((state) => state.session);

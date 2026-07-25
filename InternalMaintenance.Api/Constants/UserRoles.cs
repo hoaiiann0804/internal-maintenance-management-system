@@ -9,4 +9,4 @@ public static class UserRoles
     public const string Staff = "Staff";
 
     public const string Technician = "Technician";
-}   
+}

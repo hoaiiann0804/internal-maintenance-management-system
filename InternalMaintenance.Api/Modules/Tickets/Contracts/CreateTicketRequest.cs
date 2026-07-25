@@ -12,8 +12,8 @@ public class CreateTicketRequest
     [StringLength(1000, MinimumLength = 10, ErrorMessage = "Description must be between 10 and 1000 characters")]
     public string Description { get; set; } = string.Empty;
 
-    [Range(1,int.MaxValue, ErrorMessage ="EquipmentId must be greater than 0")]
-    public int EquipmentId {get;set;}
+    [Range(1, int.MaxValue, ErrorMessage = "EquipmentId must be greater than 0")]
+    public int EquipmentId { get; set; }
 
     [StringLength(20, ErrorMessage = "Priority must not exceed 20 characters")]
     public string Priority { get; set; } = "Medium";

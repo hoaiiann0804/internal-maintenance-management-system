@@ -5,19 +5,19 @@ namespace InternalMaintenance.Api.Models;
 //Techincian xử lý. Techician cập nhật trạng thái cho tới khi ticket được đóng 
 public class MaintenanceTicket
 {
-    public int Id {get;set;}
-    public string TicketCode {get;set;} = string.Empty;
-    public string Title {get;set;} = string.Empty;
+    public int Id { get; set; }
+    public string TicketCode { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
 
-    public int EquipmentId {get;set;}
+    public int EquipmentId { get; set; }
 
     //Thông tin chi tiết của thiết bị; chỉ có dữ liệu khi query có Include
-    public Equipment? Equipment{get;set;}
+    public Equipment? Equipment { get; set; }
     //Ai là người báo lỗi/ Tạo ticket  
-    public int CreatedByUserId {get;set;}
+    public int CreatedByUserId { get; set; }
     // Thông tin chi tiết ngươi tạo; chỉ có dữ liệu khi query có Include
-    public User? CreatedByUser  {get;set;}
+    public User? CreatedByUser { get; set; }
     //Tại sao là int? : 
     // Vì lúc ticket mới được tạo, chưa có ai giao xử lý.
     //Ban đầu
@@ -27,19 +27,19 @@ public class MaintenanceTicket
     //Sau khi Admin assign:
     //AssignedTechnicianId=3
     //Status = Assigned
-    public int? AssignedTechnicianId {get;set;}
+    public int? AssignedTechnicianId { get; set; }
     // Thông tin chi tiết techincian xử lý 
-    public User? AssignedTechnician {get;set;}
+    public User? AssignedTechnician { get; set; }
     public string Priority { get; set; } = "Medium";
     public string Status { get; set; } = "Pending";
 
     //Vì ticket mới tạo hoặc đang xử lý thì chưa ghi chú giải pháp nên dùng ? (có thể null)
-    public string? ResolutionNote  {get;set;}
+    public string? ResolutionNote { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     // Thời điểm technicain báo xử lý xong
     //Ban đầu là null ==> thì chuyển sang ResolveAt= now (thời điểm xử lý xong) 
     public DateTime? ResolvedAt { get; set; }
-    
+
     // Lưu thời điểm ticket được xác nhận hoàn tất
 
     // Khác với ResolvedAt.
@@ -61,7 +61,7 @@ public class MaintenanceTicket
     public DateTime? ClosedAt { get; set; }
 
     // Lịch sử thay đổi trạng thái (1 MaintenanceTicket có nhiều TicketStatusHistory)
-    public ICollection<TicketStatusHistory> StatusHistories {get;set;} = new List<TicketStatusHistory>();
-    public ICollection<TicketComment> Comments {get;set;} = new List<TicketComment>();
+    public ICollection<TicketStatusHistory> StatusHistories { get; set; } = new List<TicketStatusHistory>();
+    public ICollection<TicketComment> Comments { get; set; } = new List<TicketComment>();
     public ICollection<TicketAttachment> Attachments { get; set; } = new List<TicketAttachment>();
-    }
+}

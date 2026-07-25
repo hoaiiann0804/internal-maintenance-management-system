@@ -1,4 +1,5 @@
 namespace InternalMaintenance.Api.Constants;
+
 public class EquipmentStatuses
 {
     public const string Active = "Active";

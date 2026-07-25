@@ -23,10 +23,7 @@ import {
   Building2,
 } from "lucide-react";
 
-const formatDateTime = (value: string | null | undefined) => {
-  if (!value) return "N/A";
-  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" }).format(new Date(value));
-};
+import { formatDateOnly } from "@/shared/lib/date-utils";
 
 export function EquipmentPage() {
   const session = useAuthStore((state) => state.session);
@@ -233,7 +230,7 @@ export function EquipmentPage() {
                       <td className="p-3.5 text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
-                          {formatDateTime(eq.purchasedDate)}
+                          {formatDateOnly(eq.purchasedDate)}
                         </span>
                       </td>
                       <td className="p-3.5 text-muted-foreground max-w-xs truncate">

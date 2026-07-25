@@ -37,7 +37,7 @@ public class DashboardController : ControllerBase
 
         if (role == "Technician")
             return query.Where(t => t.AssignedTechnicianId == userId || t.CreatedByUserId == userId);
-        
+
         if (role == "Staff")
             return query.Where(t => t.CreatedByUserId == userId);
 
@@ -129,14 +129,14 @@ public class DashboardController : ControllerBase
             .GroupBy(e => e.DepartmentId)
             .Select(g => new { DeptId = g.Key, Count = g.Count() })
             .ToListAsync();
-            
+
         var deptIds = equipmentStats.Select(e => e.DeptId).Distinct().ToList();
         var depts = await _context.Departments.Where(d => deptIds.Contains(d.Id)).ToDictionaryAsync(d => d.Id, d => d.Name);
 
-        var equipmentByDepartment = equipmentStats.Select(e => new ChartItem 
-        { 
-            Name = depts.ContainsKey(e.DeptId) ? depts[e.DeptId] : "No Department", 
-            Value = e.Count 
+        var equipmentByDepartment = equipmentStats.Select(e => new ChartItem
+        {
+            Name = depts.ContainsKey(e.DeptId) ? depts[e.DeptId] : "No Department",
+            Value = e.Count
         }).ToList();
 
         var response = new ChartDataResponse

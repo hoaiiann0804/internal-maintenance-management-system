@@ -15,29 +15,29 @@ public static class SeedData
     }
     private static async Task SeedRolesAsync(AppDbContext context)
     {
-        await EnsureRoleAsync ( context,"Admin" );
-        await EnsureRoleAsync ( context, "Manager" );
-        await EnsureRoleAsync ( context, "Staff" );
-        await EnsureRoleAsync ( context, "Technician");
+        await EnsureRoleAsync(context, "Admin");
+        await EnsureRoleAsync(context, "Manager");
+        await EnsureRoleAsync(context, "Staff");
+        await EnsureRoleAsync(context, "Technician");
         await context.SaveChangesAsync();
-        }
+    }
 
-    private static async Task EnsureRoleAsync (AppDbContext context , string roleName)
+    private static async Task EnsureRoleAsync(AppDbContext context, string roleName)
     {
         var roleExists = await context.Roles
         .AnyAsync(role => role.Name == roleName);
-        if(roleExists)
+        if (roleExists)
         {
             return;
         }
-        context.Roles.Add( new Role
+        context.Roles.Add(new Role
         {
             Name = roleName
         });
-        
+
     }
 
-    private static async Task SeedDepartmentsAsync (AppDbContext context)
+    private static async Task SeedDepartmentsAsync(AppDbContext context)
     {
         await EnsureDepartmentAsync(context, "IT", "Information Technology Department");
         await EnsureDepartmentAsync(context, "Accounting", "Accounting Department");
@@ -65,10 +65,10 @@ public static class SeedData
         });
     }
 
-    private static async Task SeedEquipmentAsync (AppDbContext context)
+    private static async Task SeedEquipmentAsync(AppDbContext context)
     {
-        var accountingDepartment = await context.Departments.FirstAsync(d=> d.Name =="Accounting");
-        var itDepartment = await context.Departments.FirstAsync(d=>d.Name == "IT");
+        var accountingDepartment = await context.Departments.FirstAsync(d => d.Name == "Accounting");
+        var itDepartment = await context.Departments.FirstAsync(d => d.Name == "IT");
 
         await EnsureEquipmentAsync(
             context,
@@ -116,7 +116,7 @@ public static class SeedData
         });
     }
 
-    public static async Task SeedAuthUsersAsync (AppDbContext context)
+    public static async Task SeedAuthUsersAsync(AppDbContext context)
     {
         var adminRole = await context.Roles
         .FirstAsync(role => role.Name == "Admin");
@@ -128,13 +128,13 @@ public static class SeedData
         .FirstAsync(role => role.Name == "Staff");
 
         var technicianRole = await context.Roles
-        .FirstAsync(role => role.Name=="Technician");
+        .FirstAsync(role => role.Name == "Technician");
 
         var itDepartment = await context.Departments
-        .FirstOrDefaultAsync(department => department.Name=="IT");
+        .FirstOrDefaultAsync(department => department.Name == "IT");
 
-         var accountingDepartment  = await context.Departments
-        .FirstOrDefaultAsync(department => department.Name=="Accounting");
+        var accountingDepartment = await context.Departments
+       .FirstOrDefaultAsync(department => department.Name == "Accounting");
 
         await EnsureUserAsync(
             context: context,
@@ -144,28 +144,28 @@ public static class SeedData
             departmentId: null
         );
 
-         await EnsureUserAsync(
-            context: context,
-            fullName: "Manager Test",
-            email: "manager@test.com",
-            roleId: managerRole.Id,
-            departmentId: itDepartment?.Id
-        );
-         await EnsureUserAsync(
-            context: context,
-            fullName: "Staff Test",
-            email: "staff@test.com",
-            roleId: staffRole.Id,
-            departmentId: accountingDepartment?.Id
-        );
-          await EnsureUserAsync(
-            context: context,
-            fullName: "Technician Test",
-            email: "technician@test.com",
-            roleId: technicianRole.Id,
-            departmentId: itDepartment?.Id
-        );
-        await context.SaveChangesAsync();   
+        await EnsureUserAsync(
+           context: context,
+           fullName: "Manager Test",
+           email: "manager@test.com",
+           roleId: managerRole.Id,
+           departmentId: itDepartment?.Id
+       );
+        await EnsureUserAsync(
+           context: context,
+           fullName: "Staff Test",
+           email: "staff@test.com",
+           roleId: staffRole.Id,
+           departmentId: accountingDepartment?.Id
+       );
+        await EnsureUserAsync(
+          context: context,
+          fullName: "Technician Test",
+          email: "technician@test.com",
+          roleId: technicianRole.Id,
+          departmentId: itDepartment?.Id
+      );
+        await context.SaveChangesAsync();
     }
     private static async Task EnsureUserAsync(
         AppDbContext context,
@@ -177,7 +177,7 @@ public static class SeedData
         var user = await context.Users
         .FirstOrDefaultAsync(existingUser => existingUser.Email == email);
 
-        if(user is null)
+        if (user is null)
         {
             context.Users.Add(
                 new User
@@ -189,7 +189,7 @@ public static class SeedData
                     DepartmentId = departmentId,
                     IsActive = true,
                     MustChangePassword = true,
-                    LastLoginAt= null,
+                    LastLoginAt = null,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = null
                 }
@@ -210,22 +210,22 @@ public static class SeedData
 
         // CHỉ cập nhật password cũ chưa phải BCrypt hash.
         // việc này tránh reset password mỗi lần app chạy
-        if(!IsBCryptHash(user.PasswordHash))
+        if (!IsBCryptHash(user.PasswordHash))
         {
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(TemporaryPassword);
             user.MustChangePassword = true;
         }
         user.UpdatedAt = DateTime.UtcNow;
     }
-    private static bool IsBCryptHash (string passwordHash)
+    private static bool IsBCryptHash(string passwordHash)
     {
         if (string.IsNullOrWhiteSpace(passwordHash))
         {
             return false;
         }
-         return passwordHash.StartsWith("$2a$")
-            || passwordHash.StartsWith("$2b$")
-            || passwordHash.StartsWith("$2y$");
+        return passwordHash.StartsWith("$2a$")
+           || passwordHash.StartsWith("$2b$")
+           || passwordHash.StartsWith("$2y$");
     }
 
 }
