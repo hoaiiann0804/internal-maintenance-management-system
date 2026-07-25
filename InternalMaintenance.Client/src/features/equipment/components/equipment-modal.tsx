@@ -174,9 +174,11 @@ export function EquipmentModal({ equipment, isOpen, onClose }: Props) {
               required
               disabled={isDeptsLoading || isPending}
             >
-              <option value="">-- Chọn phòng ban --</option>
+              <option value="" className="bg-background text-foreground">
+                -- Chọn phòng ban --
+              </option>
               {departments.map((d) => (
-                <option key={d.id} value={d.id}>
+                <option key={d.id} value={d.id} className="bg-background text-foreground">
                   {d.name}
                 </option>
               ))}
@@ -194,9 +196,11 @@ export function EquipmentModal({ equipment, isOpen, onClose }: Props) {
               }
               disabled={isMaintenanceDeptsLoading || isPending}
             >
-              <option value="">-- Mặc định (Tự bảo trì) --</option>
+              <option value="" className="bg-background text-foreground">
+                -- Mặc định (Tự bảo trì) --
+              </option>
               {maintenanceDepartments.map((d) => (
-                <option key={d.id} value={d.id}>
+                <option key={d.id} value={d.id} className="bg-background text-foreground">
                   {d.name}
                 </option>
               ))}
@@ -212,11 +216,19 @@ export function EquipmentModal({ equipment, isOpen, onClose }: Props) {
               onChange={(e) => setStatus(e.target.value as EquipmentStatus)}
               disabled={isPending}
             >
-              <option value="Active">Hoạt động (Active)</option>
-              <option value="Inactive">Ngưng hoạt động (Inactive)</option>
-              {isEdit && <option value="Retired">Thanh lý (Retired)</option>}
-              {isEdit && equipment.status === "UnderMaintenance" && (
-                <option value="UnderMaintenance" disabled>
+              <option value="Active" className="bg-background text-foreground">
+                Hoạt động (Active)
+              </option>
+              <option value="Inactive" className="bg-background text-foreground">
+                Ngưng hoạt động (Inactive)
+              </option>
+              {isEdit && (
+                <option value="Retired" className="bg-background text-foreground">
+                  Thanh lý (Retired)
+                </option>
+              )}
+              {isEdit && equipment?.status === "UnderMaintenance" && (
+                <option value="UnderMaintenance" className="bg-background text-foreground" disabled>
                   Đang bảo trì (UnderMaintenance - Chỉ đổi qua Ticket)
                 </option>
               )}

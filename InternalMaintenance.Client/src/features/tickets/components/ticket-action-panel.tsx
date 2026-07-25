@@ -151,11 +151,11 @@ export function TicketActionPanel({ ticket }: Props) {
                   onChange={(e) => setAssignTechId(e.target.value)}
                   disabled={isWorking}
                 >
-                  <option value="">
+                  <option value="" className="bg-background text-foreground">
                     {isTechLoading ? "Đang tải..." : "-- Chọn kỹ thuật viên --"}
                   </option>
                   {technicians.map((t) => (
-                    <option key={t.id} value={t.id}>
+                    <option key={t.id} value={t.id} className="bg-background text-foreground">
                       {t.fullName}
                     </option>
                   ))}

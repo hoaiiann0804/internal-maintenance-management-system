@@ -152,7 +152,7 @@ export function TicketsPage() {
                     onChange={(e) => setTicketStatus(e.target.value as TicketStatus | "All")}
                   >
                     {["All", ...wireframeData.workflow, "Cancelled"].map((status) => (
-                      <option key={status} value={status}>
+                      <option key={status} value={status} className="bg-background text-foreground">
                         {status}
                       </option>
                     ))}
@@ -167,7 +167,7 @@ export function TicketsPage() {
                     onChange={(e) => setTicketPriority(e.target.value as TicketPriority | "All")}
                   >
                     {["All", ...wireframeData.priorities].map((p) => (
-                      <option key={p} value={p}>
+                      <option key={p} value={p} className="bg-background text-foreground">
                         {p}
                       </option>
                     ))}

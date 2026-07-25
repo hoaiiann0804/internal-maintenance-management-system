@@ -115,11 +115,11 @@ export function CreateTicketModal({ isOpen, onClose }: { isOpen: boolean; onClos
               required
               disabled={isEquipmentLoading}
             >
-              <option value="">
+              <option value="" className="bg-background text-foreground">
                 {isEquipmentLoading ? "Đang tải danh sách..." : "-- Chọn thiết bị --"}
               </option>
               {availableEquipment.map((eq) => (
-                <option key={eq.id} value={eq.id}>
+                <option key={eq.id} value={eq.id} className="bg-background text-foreground">
                   {eq.code} - {eq.name} ({eq.departmentName})
                 </option>
               ))}
@@ -134,9 +134,11 @@ export function CreateTicketModal({ isOpen, onClose }: { isOpen: boolean; onClos
               value={priority}
               onChange={(e) => setPriority(e.target.value as TicketPriority | "")}
             >
-              <option value="">-- Mặc định (Medium) --</option>
+              <option value="" className="bg-background text-foreground">
+                -- Mặc định (Medium) --
+              </option>
               {PRIORITIES.map((p) => (
-                <option key={p} value={p}>
+                <option key={p} value={p} className="bg-background text-foreground">
                   {p}
                 </option>
               ))}

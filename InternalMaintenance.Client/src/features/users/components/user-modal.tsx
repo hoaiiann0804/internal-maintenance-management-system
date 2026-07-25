@@ -152,9 +152,11 @@ export function UserModal({ user, isOpen, onClose }: Props) {
               required
               disabled={isPending}
             >
-              <option value="">-- Chọn vai trò --</option>
+              <option value="" className="bg-background text-foreground">
+                -- Chọn vai trò --
+              </option>
               {availableRoles.map((r) => (
-                <option key={r.id} value={r.id}>
+                <option key={r.id} value={r.id} className="bg-background text-foreground">
                   {r.name}
                 </option>
               ))}
@@ -169,9 +171,11 @@ export function UserModal({ user, isOpen, onClose }: Props) {
               onChange={(e) => setDepartmentId(e.target.value ? Number(e.target.value) : "")}
               disabled={isDeptsLoading || isPending}
             >
-              <option value="">-- Không trực thuộc / Hệ thống --</option>
+              <option value="" className="bg-background text-foreground">
+                -- Không trực thuộc / Hệ thống --
+              </option>
               {departments.map((d) => (
-                <option key={d.id} value={d.id}>
+                <option key={d.id} value={d.id} className="bg-background text-foreground">
                   {d.name}
                 </option>
               ))}
