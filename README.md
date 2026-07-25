@@ -169,7 +169,7 @@ Detailed view of a ticket showing status transitions, assignee, and discussion t
 
 ### 4. Equipment Management
 Asset tracking interface with department assignment and active/maintenance status toggle.
-![Equipment Management](./InternalMaintenance.Client/public/screenshots/equipment20png)
+![Equipment Management](./InternalMaintenance.Client/public/screenshots/equipment20.png)
 
 ![Equipment Management](./InternalMaintenance.Client/public/screenshots/equipment21.png)
 
