@@ -1,6 +1,6 @@
 # Office Facility Maintenance Management System
 
-> A web-based internal platform for managing office equipment maintenance across departments, technicians, and staff. It centralizes requests, assignment, status tracking, comments, and history into one auditable workflow.
+> A web-based internal platform for managing office equipment maintenance across departments, technicians, and staff. It centralizes requests, assignment, status tracking, SLA monitoring, automated email notifications, comments, and history into one auditable workflow.
 
 [![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)]()
 [![React 19](https://img.shields.io/badge/React-19-61DAFB)]()
@@ -13,11 +13,11 @@ Office Facility Maintenance Management System is an internal maintenance platfor
 
 The system helps:
 
-- staff report issues in one place
-- managers assign work with better visibility
-- technicians update progress in a controlled workflow
+- staff report issues in one place and monitor resolution timelines
+- managers assign work to primary and support technicians with better visibility
+- technicians update progress in a controlled workflow with real-time SLA countdowns
 - administrators maintain users, departments, and equipment
-- the organization keep a clear history of every ticket
+- the organization track SLA compliance and maintain a clear history of every ticket
 
 ## Business Context
 
@@ -25,8 +25,10 @@ Before this system, maintenance requests were typically handled through scattere
 
 This project replaces that fragmented process with a centralized workflow so the team can:
 
-- capture every request consistently
-- track who created, assigned, and resolved each ticket
+- capture every request consistently with automated SLA targets based on priority
+- track who created, assigned, supported, and resolved each ticket
+- enforce mandatory resolution notes and cancellation reasons
+- monitor SLA deadlines and trigger automated email alerts when tickets are near breach or overdue
 - connect each maintenance request to a department and an equipment item
 - review ticket history and comments later for audit and reporting
 
@@ -37,8 +39,11 @@ The repository currently contains:
 - an ASP.NET Core Web API backend
 - a React + Vite frontend
 - JWT authentication with refresh tokens
-- role-based access control
+- role-based access control (Admin, Manager, Staff, Technician)
 - department, equipment, user, ticket, ticket attachment, and dashboard modules
+- SLA calculation, real-time status badges, and background breach monitoring worker
+- SMTP email alert service for SLA near-breach, breach, escalation, and ticket completion
+- pre-commit code formatting automation with Husky and lint-staged
 - seeded demo data for local development
 
 The frontend currently includes:
@@ -50,7 +55,7 @@ The frontend currently includes:
 - `Users`
 - `Departments`
 
-The UI is built as a complete operational console with API hooks for authentication, ticket lifecycle management, equipment tracking, department administration, file attachments, and analytics.
+The UI is built as a complete operational console with API hooks for authentication, ticket lifecycle management, SLA countdown timers, primary and support technician assignment, equipment tracking, department administration, file attachments, and analytics.
 
 ## Key Features
 
@@ -87,17 +92,38 @@ The UI is built as a complete operational console with API hooks for authenticat
 
 ### Maintenance Tickets
 
-- create maintenance requests
+- create maintenance requests with priority-based SLA deadlines
 - view ticket queue and detail
-- assign technicians
+- assign primary technician and optional support technician
 - change ticket status through workflow rules
-- add comments
-- track status history
-- store resolution notes and timestamps
+- cancel tickets with mandatory cancellation reason modal
+- add comments and discussion threads
+- track status history and audit log
+- store resolution notes, cancellation reasons, and resolution timestamps
+
+### SLA Management & Automated Escalation
+
+- automated target resolution duration based on priority:
+  - **Critical**: 2 hours
+  - **High**: 8 hours
+  - **Medium**: 24 hours (1 day)
+  - **Low**: 48 hours (2 days)
+- real-time SLA countdown timers and color-coded status badges on client UI (`InSLA`, `NearBreach`, `Breached`, `MetSLA`, `MissedSLA`, `Cancelled`)
+- background `SlaMonitorWorker` running periodically to evaluate open tickets against SLA deadlines
+- automated near-breach warnings (< 1 hour remaining) and breach detection
+- automated escalation alerts when overdue duration exceeds threshold
+
+### Email Notifications & Alerts
+
+- SMTP integration using MailKit / MimeKit (`SmtpEmailService`)
+- near-breach warning emails sent to assigned technicians
+- SLA breach alerts sent to department managers
+- escalation emails sent to system administrators for severely overdue tickets
+- SLA outcome notification emails sent upon ticket completion (`MetSLA` / `MissedSLA`)
 
 ### Ticket Attachments & Storage
 
-- presigned file upload flow (S3 / Local storage compatible)
+- presigned file upload flow (Cloudflare R2 / S3 / Local storage compatible)
 - list attachments per ticket
 - preview modal for images, videos, and PDF documents
 - secure download link generation
@@ -113,7 +139,12 @@ The UI is built as a complete operational console with API hooks for authenticat
 ### Theme & UI Polish
 
 - Light and Dark mode toggle with system preference support
-- responsive tables, modal dialogs, and status badges
+- responsive tables, modal dialogs, SLA badges, and status indicators
+
+### Code Quality & Git Hooks
+
+- Husky pre-commit hook integration
+- lint-staged automated formatting with Prettier and lint checking with ESLint prior to code commits
 
 ## UI & Features Screenshots
 
@@ -123,14 +154,14 @@ Overview of maintenance tickets, KPI summaries, and equipment status.
 ![Dashboard UI](./InternalMaintenance.Client/public/screenshots/dashboard2.png)
 
 ### 2. Ticket Management
-List of maintenance tickets with color-coded status badges and priority indicators.
+List of maintenance tickets with color-coded status badges, priority indicators, and SLA tracking.
 ![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment1.png)
 
 ![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment2.png)
 
 
 ### 3. Ticket Details & Workflow
-Detailed view of a ticket showing status transitions, assignee, and discussion thread.
+Detailed view of a ticket showing status transitions, assignee, support technician, SLA countdown, and discussion thread.
 
 ![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment3.png)
 
@@ -193,15 +224,17 @@ Admin directory for managing users, roles (Admin/Manager/Staff/Technician), and 
 
 ```mermaid
 flowchart TB
-    A[Staff] --> B[Create Ticket]
+    A[Staff] --> B[Create Ticket with SLA Deadline]
     B --> C[Pending]
-    C --> D[Manager Assign]
+    C --> D[Manager Assign Technician & Support Tech]
     D --> E[Assigned]
     E --> F[Technician Works]
     F --> G[In Progress]
-    G --> H[Resolved]
+    G --> H[Resolved with Resolution Note & SLA Check]
     H --> I[Staff Confirm]
     I --> J[Closed]
+    C -. Cancel with Reason .-> K[Cancelled]
+    E -. Cancel with Reason .-> K
 ```
 
 ## Access Model
@@ -218,45 +251,98 @@ Ticket visibility is filtered by role:
 - `Admin` can access all tickets
 - `Manager` can access tickets in their department
 - `Staff` can access tickets they created
-- `Technician` can access tickets assigned to them
+- `Technician` can access tickets assigned to them (as primary or support technician) or created by them
 
 ## Tech Stack
 
 **Frontend:** React 19, TypeScript, Vite, TanStack Query, React Router, Zustand, React Hook Form, Zod  
-**Backend:** ASP.NET Core 10, Entity Framework Core, JWT Authentication, BCrypt.Net-Next, Swagger/OpenAPI  
+**Backend:** ASP.NET Core 10, Entity Framework Core, JWT Authentication, BCrypt.Net-Next, MailKit / MimeKit (SMTP), BackgroundService (`SlaMonitorWorker`), Swagger/OpenAPI  
 **Database:** Microsoft SQL Server 2022  
-**Tooling:** Docker Compose, pnpm, ESLint, Vitest
+**Tooling:** Docker Compose, pnpm, ESLint, Prettier, Husky, lint-staged, Vitest
 
 ## Repository Structure
 
 ```text
 InternalMaintenanceManagement.slnx
-|-- InternalMaintenance.Api/           # ASP.NET Core Web API
-|   |-- Common/                         # Query and pagination helpers
-|   |-- Constants/                      # Shared role, status, and priority constants
-|   |-- Data/                           # DbContext and seed data
-|   |-- Extensions/                     # Startup and pipeline wiring
-|   |-- Migrations/                     # EF Core migrations
-|   |-- Models/                         # Domain entities
-|   |-- Modules/                        # Feature modules
-|   |   |-- Auth/
-|   |   |-- Departments/
-|   |   |-- Equipment/
-|   |   |-- Tickets/
-|   |   `-- Users/
-|   `-- Services/                       # JWT, current user, ticket code generation
-|-- InternalMaintenance.Client/         # React + Vite frontend
-|   |-- src/
-|   |   |-- app/
-|   |   |-- features/
-|   |   |-- entities/
-|   |   |-- pages/
-|   |   |-- shared/
-|   |   `-- main.tsx
-|   `-- public/
-|-- docker-compose.yml                  # SQL Server development container
-|-- .env.example
-`-- README.md
+│
+├── .husky/                                # Git hook automation
+│   └── pre-commit                         # Pre-commit hook triggering lint-staged & Prettier
+│
+├── InternalMaintenance.Api/              # ASP.NET Core 10 Web API Backend
+│   ├── Common/                            # Shared utilities, pagination & custom JSON converters
+│   │   ├── Pagination/                    # PagedResponse & PaginationQuery models
+│   │   └── UtcDateTimeJsonConverter.cs    # ISO 8601 UTC date serializer
+│   ├── Constants/                         # Domain constants & policies
+│   │   └── SlaPolicy.cs                   # SLA threshold & status definitions
+│   ├── Data/                              # Data access & database context
+│   │   ├── AppDbContext.cs                # EF Core DbContext definition
+│   │   └── DbInitializer.cs               # Startup database migrations & demo data seeders
+│   ├── Extensions/                        # Startup configuration & Dependency Injection wiring
+│   │   └── ServiceCollectionExtensions.cs # Authentication, DbContext, Cors, & Service registrations
+│   ├── Migrations/                        # Entity Framework Core database migrations
+│   ├── Modules/                           # Feature-based API Modules (Modular Monolith - Entities, Controllers & Services co-located)
+│   │   ├── Auth/                          # Authentication, token refresh, & role definitions
+│   │   ├── Dashboard/                     # Metrics, summary KPIs, & analytics charts
+│   │   ├── Departments/                   # Department management & maintenance team flags
+│   │   ├── Equipment/                     # Asset tracking, equipment codes & status toggles
+│   │   ├── TicketAttachments/             # Attachment upload, presigned URLs & Cloudflare R2/S3 storage
+│   │   ├── Tickets/                       # Ticket lifecycle, SLA calculation, assignment & history
+│   │   └── Users/                         # User administration, status toggles & password resets
+│   ├── Services/                          # Core business services & background tasks
+│   │   ├── Implementation/                # Service implementations
+│   │   │   ├── CurrentUserService.cs      # ClaimsPrincipal user identity retriever
+│   │   │   ├── JwtTokenService.cs         # JWT token generator & validator
+│   │   │   ├── SlaMonitorWorker.cs        # BackgroundService checking SLA breach & escalation
+│   │   │   ├── SmtpEmailService.cs        # MailKit/MimeKit SMTP email sender
+│   │   │   └── TicketCodeGenerator.cs     # Unique ticket code generator (e.g., TCK-YYYYMMDD-XXX)
+│   │   └── Interface/                     # Service interfaces (IEmailService, ITicketCodeGenerator)
+│   ├── Program.cs                         # Application entrypoint & middleware pipeline
+│   └── appsettings.json                   # Configuration settings (JWT, Connection Strings, SMTP)
+│
+├── InternalMaintenance.Client/            # React 19 + TypeScript + Vite Frontend
+│   ├── src/
+│   │   ├── app/                           # Core app configuration, routing & global providers
+│   │   │   ├── guard/                     # AuthGuard & RoleGuard route protection
+│   │   │   ├── layouts/                   # AppLayout with responsive sidebar & theme toggle
+│   │   │   ├── providers/                 # QueryClientProvider, ThemeProvider, AuthProvider
+│   │   │   └── router.tsx                 # React Router route definitions
+│   │   ├── entities/                      # Core domain entities & TypeScript interfaces
+│   │   │   ├── auth/                      # Auth tokens & session types
+│   │   │   ├── department/                # Department entity models
+│   │   │   ├── equipment/                 # Equipment asset entity models
+│   │   │   ├── ticket/                    # Ticket, SLA, comment & attachment entity models
+│   │   │   └── user/                      # User entity models & roles
+│   │   ├── features/                      # Feature modules with components, hooks & API calls
+│   │   │   ├── auth/                      # Login form & password change dialogs
+│   │   │   ├── dashboard/                 # Metric summary cards & chart widgets
+│   │   │   ├── departments/               # Department table & creation/edit modals
+│   │   │   ├── equipment/                 # Equipment table & asset management modals
+│   │   │   ├── tickets/                   # Ticket list, action panel, SLA badges, comments & file zone
+│   │   │   └── users/                     # User management table & status modals
+│   │   ├── pages/                         # Page-level components corresponding to routes
+│   │   │   ├── dashboard/                 # Dashboard page screen
+│   │   │   ├── departments/               # Department management page screen
+│   │   │   ├── equipment/                 # Equipment management page screen
+│   │   │   ├── login/                     # Login page screen
+│   │   │   ├── tickets/                   # Maintenance tickets list & detail view screens
+│   │   │   └── users/                     # User administration page screen
+│   │   ├── shared/                        # Reusable primitives, API client, hooks & utilities
+│   │   │   ├── api/                       # Axios instance with JWT interceptors & token refresh
+│   │   │   ├── ui/                        # UI component primitives (Button, Dialog, Badge, Input, Table)
+│   │   │   ├── hooks/                     # Custom React hooks (useToast, useTheme)
+│   │   │   └── lib/                       # Date utilities, SLA calculation helpers, error handlers
+│   │   ├── App.tsx                        # Root application component
+│   │   ├── index.css                      # Global styles, Tailwind CSS & theme tokens
+│   │   └── main.tsx                       # React application entrypoint
+│   ├── .env                               # Environment variables for client (VITE_API_URL)
+│   ├── eslint.config.js                   # ESLint configuration
+│   ├── package.json                       # pnpm dependencies & NPM scripts
+│   ├── tailwind.config.js                 # Tailwind CSS configuration
+│   └── vite.config.ts                     # Vite build & API proxy setup
+│
+├── docker-compose.yml                     # SQL Server 2022 development database container
+├── .env.example                           # Example environment variable template
+└── README.md                              # System documentation & feature breakdown
 ```
 
 ## System Architecture
@@ -267,7 +353,8 @@ flowchart LR
     B --> C[JWT Authentication]
     B --> D[Entity Framework Core]
     D --> E[(SQL Server)]
-    B --> F[Seeded Roles, Users, Departments, Equipment]
+    B --> F[Background SLA Worker]
+    F --> G[SMTP Email Service]
 ```
 
 The backend is organized as a modular monolith, which keeps feature boundaries clear without splitting the system into many separate services too early.
@@ -379,13 +466,28 @@ Ticket priorities:
 - `High`
 - `Critical`
 
+SLA statuses:
+
+- `InSLA`
+- `NearBreach`
+- `Breached`
+- `MetSLA`
+- `MissedSLA`
+- `Cancelled`
+
 ## Ticket Workflow Rules
 
-- A ticket can be cancelled from `Pending` or `Assigned`
+- A ticket can be cancelled from `Pending` or `Assigned` (requires a `cancellationReason`)
+- Primary technician (`assignedTechnicianId`) and secondary technician (`supportTechnicianId`) can be assigned
+- SLA deadline (`dueAt`) is automatically determined based on priority at creation:
+  - `Critical`: 2 hours
+  - `High`: 8 hours
+  - `Medium`: 24 hours
+  - `Low`: 48 hours
 - A ticket can move from `Assigned` to `InProgress`
-- A ticket can move from `InProgress` to `Resolved`
+- A ticket can move from `InProgress` to `Resolved` (requires a `resolutionNote`)
+- Moving to `Resolved` or `Closed` checks completion against `dueAt` to record `MetSLA` or `MissedSLA`
 - A ticket can move from `Resolved` to `Closed`
-- A resolution note is required before resolving a ticket
 - Closed tickets should not be modified
 - Every status change is stored in history
 
@@ -455,6 +557,11 @@ Keep secrets such as `ConnectionStrings__DefaultConnection` in `.env` or user-se
 | `Jwt__Issuer` | JWT issuer claim | `InternalMaintenance.Api` |
 | `Jwt__Audience` | JWT audience claim | `InternalMaintenance.Client` |
 | `Jwt__ExpiresInMinutes` | Token lifetime in minutes | `60` |
+| `Smtp__Host` | SMTP host for sending email notifications | `smtp.gmail.com` |
+| `Smtp__Port` | SMTP port | `587` |
+| `Smtp__Username` | SMTP account username | `user@example.com` |
+| `Smtp__Password` | SMTP account password or app password | `secretpassword` |
+| `Smtp__FromAddress` | Email sender address | `no-reply@internalmaintenance.local` |
 | `MSSQL_SA_PASSWORD` | SQL Server SA password for Docker Compose | `YourStrongPassword` |
 | `SQLSERVER_PORT` | Local port exposed by the SQL Server container | `1433` |
 
@@ -525,7 +632,9 @@ Useful scripts in `InternalMaintenance.Client/package.json`:
 - A department cannot be deleted if related users or equipment still exist
 - Every ticket status change is recorded
 - A resolution note is required before a ticket can be resolved
-- Ticket visibility depends on role and department
+- A cancellation reason is required before a ticket can be cancelled
+- Ticket visibility depends on role, department, created user, and assigned primary/support technician
+- Ticket resolution time is tracked against SLA targets based on priority
 
 ## Feature Implementation Status
 
@@ -536,15 +645,17 @@ Useful scripts in `InternalMaintenance.Client/package.json`:
 | **User Management** | ✅ Completed | Yes | Yes | User directory, active status toggle, reset password |
 | **Department Management** | ✅ Completed | Yes | Yes | Department CRUD, `IsMaintenanceTeam` flag |
 | **Equipment Management** | ✅ Completed | Yes | Yes | Asset tracking, department link, immutable code |
-| **Maintenance Tickets** | ✅ Completed | Yes | Yes | Create ticket, technician assignment, status workflow |
+| **Maintenance Tickets** | ✅ Completed | Yes | Yes | Create ticket, primary & support technician assignment, status workflow |
+| **Ticket Cancellation Reason** | ✅ Completed | Yes | Yes | Required cancellation reason modal & detail display |
+| **SLA Tracking & Breach Alerts** | ✅ Completed | Yes | Yes | Priority SLA deadlines, UI timers/badges, background monitor worker |
+| **Email Notifications** | ✅ Completed | Yes | Yes | SMTP alerts for Near-Breach, SLA Breach, Escalation & Completion |
 | **Ticket Comments & History** | ✅ Completed | Yes | Yes | Discussion thread, automated status audit log |
 | **Ticket Attachments & Files** | ✅ Completed | Yes | Yes | Presigned upload, image/video/PDF preview, deletion |
 | **Dashboard & Analytics** | ✅ Completed | Yes | Yes | Summary KPIs, status & priority charts, dept equipment stats |
 | **Dark / Light Theme** | ✅ Completed | N/A | Yes | Theme mode switcher with persistent UI state |
+| **Pre-commit Formatting (Husky)** | ✅ Completed | N/A | Yes | Git pre-commit hooks with lint-staged & Prettier |
 | **Equipment QR Code** | 🔳 Pending | No | No | Generate & scan QR codes for rapid asset lookup |
-| **Email Notifications** | 🔳 Pending | No | No | SMTP/SendGrid alerts on ticket lifecycle events |
 | **Preventive Maintenance** | 🔳 Pending | No | No | Scheduled recurring maintenance tasks & automatic tickets |
-| **SLA Tracking & Alerts** | 🔳 Pending | No | No | Target resolution times & SLA breach alerts |
 | **Data Export & PDF/Excel** | 🔳 Pending | No | No | Export tickets and asset history reports to Excel/PDF |
 | **Multi-building / Location** | 🔳 Pending | No | No | Location hierarchy (Building -> Floor -> Room) |
 | **Multi-tenancy & SaaS** | 🔳 Pending | No | No | Organization isolation & multi-tenant billing |
@@ -553,10 +664,12 @@ Useful scripts in `InternalMaintenance.Client/package.json`:
 
 ### Next Improvements (Short-Term)
 
+- [x] **SLA Tracking & Background Alerts**: Target resolution SLA metrics, overdue ticket highlights, real-time countdown, and background monitoring worker.
+- [x] **Email Notification**: Integrated SMTP service to alert users on near-breach, breach, escalation, and resolution.
+- [x] **Ticket Cancellation Reason & Support Technician**: Support technician assignment and mandatory cancellation reasons.
+- [x] **Husky & Lint-Staged Hooks**: Automated pre-commit formatting and code linting.
 - [ ] **Equipment QR Code**: Generate QR codes for equipment items and enable camera scanning on mobile web.
-- [ ] **Email Notification**: Integrate email service to alert users on ticket assignment, comment, or status resolution.
 - [ ] **Preventive Maintenance Scheduling**: Periodic asset inspection plans with automatic recurring ticket generation.
-- [ ] **SLA Dashboard & Alerts**: Target resolution SLA metrics, overdue ticket highlights, and escalation rules.
 - [ ] **Data Export**: Export maintenance history and asset inventories to CSV, Excel, or PDF format.
 
 ### Longer-Term Ideas
