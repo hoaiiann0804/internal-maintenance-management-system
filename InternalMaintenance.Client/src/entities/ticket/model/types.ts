@@ -30,6 +30,7 @@ export interface MaintenanceTicket {
   closedAt: string | null;
   dueAt?: string | null;
   slaStatus?: SlaStatus | null;
+
   cancellationReason?: string | null;
 }
 

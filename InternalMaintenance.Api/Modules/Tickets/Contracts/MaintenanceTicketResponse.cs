@@ -29,4 +29,7 @@ public class MaintenanceTicketResponse
     public DateTime CreatedAt { get; set; }
     public DateTime? ResolvedAt { get; set; }
     public DateTime? ClosedAt { get; set; }
+
+    public DateTime? DueAt { get; set; }
+    public string? SlaStatus { get; set; }
 }

@@ -3,6 +3,7 @@ using InternalMaintenance.Api.Modules.Auth;
 using InternalMaintenance.Api.Modules.TicketAttachments;
 using InternalMaintenance.Api.Modules.TicketAttachments.Storage;
 using InternalMaintenance.Api.Services;
+using InternalMaintenance.Api.Services.Implementation;
 using InternalMaintenance.Api.Services.Interface;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -84,6 +85,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<JwtTokenService>();
         services.AddScoped<CurrentUserService>();
         services.AddScoped<ITicketCodeGenerator, TicketCodeGenerator>();
+        services.AddScoped<IEmailService, SmtpEmailService>();
+        services.AddHostedService<SlaMonitorWorker>();
 
         return services;
     }
