@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import axios from "axios";
 import type { MaintenanceTicketDetail, TicketStatus } from "../../../entities/ticket/model/types";
@@ -64,18 +64,20 @@ export function TicketActionPanel({ ticket }: Props) {
   const [statusNote, setStatusNote] = useState("");
   const [commentDraft, setCommentDraft] = useState("");
 
-  const assignMutation = useAssignTicketMutation(ticket.id);
-  const statusMutation = useChangeTicketStatusMutation(ticket.id);
-  const commentMutation = useCreateTicketCommentMutation(ticket.id);
-
-  useEffect(() => {
+  const [prevTicket, setPrevTicket] = useState(ticket);
+  if (ticket !== prevTicket) {
+    setPrevTicket(ticket);
     setAssignTechId(ticket.assignedTechnicianId?.toString() ?? "");
     setSupportTechId(ticket.supportTechnicianId?.toString() ?? "");
     setAssignNote("");
     setResolutionNote(ticket.resolutionNote ?? "");
     setStatusNote("");
     setCommentDraft("");
-  }, [ticket]);
+  }
+
+  const assignMutation = useAssignTicketMutation(ticket.id);
+  const statusMutation = useChangeTicketStatusMutation(ticket.id);
+  const commentMutation = useCreateTicketCommentMutation(ticket.id);
 
   const canAssignTicket =
     role === "Admin" ||
