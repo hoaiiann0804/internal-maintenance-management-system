@@ -19,6 +19,9 @@ public class ChangeTicketStatusRequest
     // Ket qua xu ly cuoi cung, thuong chi can khi status = Resolved.
     public string? ResolutionNote { get; set; }
 
+    // Ly do huy ticket, dung khi status = Cancelled.
+    public string? CancellationReason { get; set; }
+
     // Ghi chu cho lan doi trang thai nay, se luu vao TicketStatusHistory.Note.
     public string? Note { get; set; }
 }
