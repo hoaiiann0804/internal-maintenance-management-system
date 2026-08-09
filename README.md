@@ -444,6 +444,8 @@ Create a local `.env` file from the example:
 Copy-Item .env.example .env
 ```
 
+Keep secrets such as `ConnectionStrings__DefaultConnection` in `.env` or user-secrets, not in `launchSettings.json`.
+
 ### Environment Variables
 
 | Variable | Purpose | Example |

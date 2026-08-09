@@ -47,6 +47,12 @@ public class AppDbContext : DbContext
             .HasForeignKey(ticket => ticket.AssignedTechnicianId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        modelBuilder.Entity<MaintenanceTicket>()
+            .HasOne(ticket => ticket.SupportTechnician)
+            .WithMany()
+            .HasForeignKey(ticket => ticket.SupportTechnicianId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // 1 Thiết bị sẽ có nhiều ticket (Phiếu báo lỗi/ Bảo trì)
         modelBuilder.Entity<MaintenanceTicket>()
         .HasOne(ticket => ticket.Equipment)

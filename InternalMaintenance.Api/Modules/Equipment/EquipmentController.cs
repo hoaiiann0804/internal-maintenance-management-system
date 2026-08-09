@@ -218,6 +218,7 @@ public class EquipmentController : ControllerBase
             Code = code,
             Name = name,
             DepartmentId = request.DepartmentId,
+            // Null = no explicit maintenance team; the UI labels this as "self-maintained".
             MaintenanceDepartmentId = request.MaintenanceDepartmentId,
             Status = status,
             PurchasedDate = request.PurchasedDate,

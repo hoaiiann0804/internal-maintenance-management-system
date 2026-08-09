@@ -1,4 +1,4 @@
-using InternalMaintenance.Api.Common;
+﻿using InternalMaintenance.Api.Common;
 using InternalMaintenance.Api.Common.Pagination;
 using InternalMaintenance.Api.Constants;
 using InternalMaintenance.Api.Data;
@@ -35,8 +35,8 @@ public class MaintenanceTicketsController : ControllerBase
 
 
 
-    // Áp dụng phân quyền dữ liệu cho Ticket theo role
-    // Mỗi role chỉ được truy cập các ticket thuộc phạm vi được phép 
+    // Ap dung quyen truy cap du lieu ticket theo role.
+    // Moi role chi xem duoc ticket nam trong pham vi cho phep.
 
     private IQueryable<MaintenanceTicket> ApplyTicketAccessControl(
         IQueryable<MaintenanceTicket> query
@@ -46,12 +46,12 @@ public class MaintenanceTicketsController : ControllerBase
         var userId = _currentUserService.UserId;
         var departmentId = _currentUserService.DepartmentId;
 
-        //Admin xem toàn bộ ticket 
+        // Admin xem toan bo ticket.
         if (role == UserRoles.Admin)
         {
             return query;
         }
-        // Manager chỉ xem ticket thuộc phòng ban mình quản lý HOẶC thuộc quyền bảo trì của phòng mình
+        // Manager chi xem ticket cua phong ban minh quan ly hoac pham vi bao tri cua phong minh.
         if (role == UserRoles.Manager)
         {
             return query.Where(
@@ -59,21 +59,23 @@ public class MaintenanceTicketsController : ControllerBase
                           ticket.Equipment!.MaintenanceDepartmentId == departmentId
             );
         }
-        // Staff chỉ được xem ticket do chính mình tạo
+        // Staff chi duoc xem ticket do chinh minh tao.
         if (role == UserRoles.Staff)
         {
             return query.Where(
                 ticket => ticket.CreatedByUserId == userId
             );
         }
-        // Technician chỉ được xem ticket được giao xử lý HOẶC do mình tạo
+        // Technician chi duoc xem ticket duoc giao xu ly hoac ticket do chinh minh tao.
         if (role == UserRoles.Technician)
         {
             return query.Where(
-                ticket => ticket.AssignedTechnicianId == userId || ticket.CreatedByUserId == userId
+                ticket => ticket.AssignedTechnicianId == userId ||
+                          ticket.SupportTechnicianId == userId ||
+                          ticket.CreatedByUserId == userId
             );
         }
-        // Role không hợp lệ
+        // Role khong hop le.
         return query.Where(ticket => false);
     }
 
@@ -130,11 +132,15 @@ public class MaintenanceTicketsController : ControllerBase
                 EquipmentId = ticket.EquipmentId,
                 EquipmentCode = ticket.Equipment!.Code,
                 EquipmentName = ticket.Equipment!.Name,
+                EquipmentDepartmentId = ticket.Equipment.DepartmentId,
+                EquipmentMaintenanceDepartmentId = ticket.Equipment.MaintenanceDepartmentId,
                 CreatedByUserId = ticket.CreatedByUserId,
                 CreatedByUserName = ticket.CreatedByUser!.FullName,
                 // (co the dung cach  CreatedByUserName = ticket.CreatedByUser!= null? ticket.CreatedByUser.FullName: string.Empty )
                 AssignedTechnicianId = ticket.AssignedTechnicianId,
                 AssignedTechnicianName = ticket.AssignedTechnician != null ? ticket.AssignedTechnician.FullName : null,
+                SupportTechnicianId = ticket.SupportTechnicianId,
+                SupportTechnicianName = ticket.SupportTechnician != null ? ticket.SupportTechnician.FullName : null,
                 Priority = ticket.Priority,
                 Status = ticket.Status,
                 ResolutionNote = ticket.ResolutionNote,
@@ -150,7 +156,7 @@ public class MaintenanceTicketsController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<ActionResult<MaintenanceTicketResponse>> GetMaintenanceTicketById(int id)
     {
-        // Khởi tạo truy vấn và áp dụng phân quyền theo role 
+        // Khoi tao truy van va ap dung phan quyen theo role.
         var ticketQuery = _context.MaintenanceTickets
         .AsNoTracking()
         .AsQueryable();
@@ -168,11 +174,15 @@ public class MaintenanceTicketsController : ControllerBase
                 EquipmentId = ticket.EquipmentId,
                 EquipmentCode = ticket.Equipment!.Code,
                 EquipmentName = ticket.Equipment!.Name,
+                EquipmentDepartmentId = ticket.Equipment.DepartmentId,
+                EquipmentMaintenanceDepartmentId = ticket.Equipment.MaintenanceDepartmentId,
                 CreatedByUserId = ticket.CreatedByUserId,
                 CreatedByUserName = ticket.CreatedByUser!.FullName,
                 // (co the dung cach  CreatedByUserName = ticket.CreatedByUser!= null? ticket.CreatedByUser.FullName: string.Empty )
                 AssignedTechnicianId = ticket.AssignedTechnicianId,
                 AssignedTechnicianName = ticket.AssignedTechnician != null ? ticket.AssignedTechnician.FullName : null,
+                SupportTechnicianId = ticket.SupportTechnicianId,
+                SupportTechnicianName = ticket.SupportTechnician != null ? ticket.SupportTechnician.FullName : null,
                 Priority = ticket.Priority,
                 Status = ticket.Status,
                 ResolutionNote = ticket.ResolutionNote,
@@ -215,7 +225,7 @@ public class MaintenanceTicketsController : ControllerBase
                }
             );
         }
-        // Không cho tạo ticket cho thiết bị đã thanh lý
+        // Khong cho tao ticket cho thiet bi da thanh ly.
 
         if (equipment.Status == EquipmentStatuses.Retired)
         {
@@ -227,7 +237,7 @@ public class MaintenanceTicketsController : ControllerBase
             );
         }
 
-        //Nếu đang sửa thì không được tạo ticket mới
+        // Neu thiet bi dang under maintenance thi khong duoc tao ticket moi.
         if (equipment.Status == EquipmentStatuses.UnderMaintenance)
         {
             return BadRequest(
@@ -238,9 +248,21 @@ public class MaintenanceTicketsController : ControllerBase
             );
         }
 
-        // Không cho tạo nhiều ticket đang mở cùng một thiết bị
-        // Nếu Equipment này đã có ticket Pending/Assgined/InProgress
-        // Nghĩa là sự cố cũ chưa xử lý xong, nên chặn để tránh tạo ticket trùng
+        // Thiet bi self-managed = khong co team bao tri rieng.
+        // Rule nghiep vu: thiet bi nay khong di vao workflow ticket bao tri de tranh tao ticket du.
+        if (!equipment.MaintenanceDepartmentId.HasValue)
+        {
+            return BadRequest(
+                new
+                {
+                    message = "This equipment is self-managed and does not create maintenance tickets"
+                }
+            );
+        }
+
+        // Khong cho tao nhieu ticket dang mo cho cung mot thiet bi.
+        // Neu da co ticket Pending/Assigned/InProgress thi ticket truoc chua dong xong.
+        // Chan truong hop tao ticket trung lap.
 
         var hasOpenTicket = await _context.MaintenanceTickets
         .AnyAsync(ticket => ticket.EquipmentId == request.EquipmentId
@@ -303,6 +325,8 @@ public class MaintenanceTicketsController : ControllerBase
                 CreatedByUserName = t.CreatedByUser!.FullName,
                 AssignedTechnicianId = t.AssignedTechnicianId,
                 AssignedTechnicianName = t.AssignedTechnician != null ? t.AssignedTechnician.FullName : null,
+                SupportTechnicianId = t.SupportTechnicianId,
+                SupportTechnicianName = t.SupportTechnician != null ? t.SupportTechnician.FullName : null,
                 Priority = t.Priority,
                 Status = t.Status,
                 ResolutionNote = t.ResolutionNote,
@@ -324,7 +348,7 @@ public class MaintenanceTicketsController : ControllerBase
     public async Task<ActionResult<MaintenanceTicketResponse>> UpdateTicket(int id, UpdateTicketRequest request)
     {
         var ticket = await _context.MaintenanceTickets
-        //Load các thông tin liên quan để trả về đầy đủ thông tin ticket sau khi cập nhật 
+        // Load cac thong tin lien quan de tra ve du lieu ticket day du sau khi cap nhat.
         .Include(t => t.Equipment)
         .Include(t => t.CreatedByUser)
         .Include(t => t.AssignedTechnician)
@@ -343,7 +367,7 @@ public class MaintenanceTicketsController : ControllerBase
         var userId = _currentUserService.UserId;
         var department = _currentUserService.DepartmentId;
 
-        // Requester (bất kể role) được sửa ticket của mình chỉ khi Pending
+        // Requester, bat ke role nao, chi duoc sua ticket cua minh khi ticket con Pending.
         if (ticket.CreatedByUserId == userId)
         {
             if (ticket.Status != TicketStatuses.Pending)
@@ -351,14 +375,14 @@ public class MaintenanceTicketsController : ControllerBase
         }
         else
         {
-            // Không phải Requester, thì chỉ có Admin hoặc Manager (thuộc phòng ban) mới được sửa
+            // Neu khong phai requester thi chi Admin hoac Manager moi duoc sua.
             if (role != UserRoles.Admin && role != UserRoles.Manager)
             {
                 return Forbid();
             }
 
-            // Manager chỉ sửa được Ticket của phòng ban mình (Owner) 
-            if (role == UserRoles.Manager && ticket.Equipment!.DepartmentId != department)
+            // Manager chi duoc sua ticket nam trong pham vi phong ban minh quan ly.
+            if (role == UserRoles.Manager && !TicketAccessPolicy.CanAccess(ticket, _currentUserService))
             {
                 return Forbid();
             }
@@ -384,10 +408,14 @@ public class MaintenanceTicketsController : ControllerBase
             EquipmentId = ticket.EquipmentId,
             EquipmentCode = ticket.Equipment!.Code,
             EquipmentName = ticket.Equipment!.Name,
+            EquipmentDepartmentId = ticket.Equipment.DepartmentId,
+            EquipmentMaintenanceDepartmentId = ticket.Equipment.MaintenanceDepartmentId,
             CreatedByUserId = ticket.CreatedByUserId,
             CreatedByUserName = ticket.CreatedByUser!.FullName,
             AssignedTechnicianId = ticket.AssignedTechnicianId,
             AssignedTechnicianName = ticket.AssignedTechnician?.FullName,
+            SupportTechnicianId = ticket.SupportTechnicianId,
+            SupportTechnicianName = ticket.SupportTechnician?.FullName,
             Priority = ticket.Priority,
             Status = ticket.Status,
             ResolutionNote = ticket.ResolutionNote,
@@ -408,6 +436,7 @@ public class MaintenanceTicketsController : ControllerBase
 
         var ticket = await _context.MaintenanceTickets
         .Include(t => t.Equipment)
+        .Include(t => t.CreatedByUser)
         .FirstOrDefaultAsync(t => t.Id == id);
 
         if (ticket is null)
@@ -420,20 +449,24 @@ public class MaintenanceTicketsController : ControllerBase
             );
         }
 
-        var targetDeptId = ticket.Equipment!.MaintenanceDepartmentId ?? ticket.Equipment.DepartmentId;
-
-        // Admin được assign mọi ticket
-        if (role == UserRoles.Manager)
+        if (!TicketAccessPolicy.CanAssign(ticket, _currentUserService))
         {
-            // Manager chỉ assign ticket thuộc phòng ban chuyên môn bảo trì của mình 
-            // Nếu thiết bị chưa cấu hình MaintenanceDepartmentId thì fallback về DepartmentId
-            if (targetDeptId != departmentId)
-            {
-                return Forbid();
-            }
+            return Forbid();
         }
 
-        // Chặn phân công công việc khi  trạng thái đã  kết thúc và hủy công việc phân công 
+        // Thiet bi self-managed khong duoc phan cong technician.
+        // Neu khong co maintenance department rieng thi ticket khong di vao luong assign.
+        if (!ticket.Equipment!.MaintenanceDepartmentId.HasValue)
+        {
+            return BadRequest(new
+            {
+                message = "This equipment is self-managed and cannot be assigned to a technician"
+            });
+        }
+
+        var targetDeptId = ticket.Equipment.MaintenanceDepartmentId.Value;
+
+        // Chan phan cong khi ticket da dong hoac da huy.
         if (ticket.Status == TicketStatuses.Closed || ticket.Status == TicketStatuses.Cancelled)
         {
             return BadRequest(new
@@ -441,9 +474,8 @@ public class MaintenanceTicketsController : ControllerBase
                 message = "Cannot assign a closed or cancelled ticket"
             });
         }
-        // Chỉ cho assign ticket đang Pending hoặc Assigned
-        //Pending = assign lần đầu
-        //Assigned= đổi technician nếu cần
+        // Chi cho assign ticket dang Pending hoac Assigned.
+        // Pending = gan lan dau, Assigned = doi technician neu can.
 
         if (!TicketWorkflowRules.IsAssignableStatus(ticket.Status))
         {
@@ -457,8 +489,9 @@ public class MaintenanceTicketsController : ControllerBase
         }
 
 
-        var technician = await _context.Users.Include(user => user.Role).
-        FirstOrDefaultAsync(u => u.Id == request.AssignedTechnicianId);
+        var technician = await _context.Users
+        .Include(user => user.Role)
+        .FirstOrDefaultAsync(u => u.Id == request.AssignedTechnicianId);
 
         if (technician is null)
         {
@@ -498,10 +531,68 @@ public class MaintenanceTicketsController : ControllerBase
                     message = "Technician account is inactive"
                 });
         }
+
+        User? supportTechnician = null;
+        if (request.SupportTechnicianId.HasValue)
+        {
+            supportTechnician = await _context.Users
+                .Include(user => user.Role)
+                .FirstOrDefaultAsync(u => u.Id == request.SupportTechnicianId.Value);
+
+            if (supportTechnician is null)
+            {
+                return NotFound(
+                    new
+                    {
+                        message = "Support technician does not exists"
+                    }
+                );
+            }
+
+            if (supportTechnician.Role == null || supportTechnician.Role.Name != UserRoles.Technician)
+            {
+                return BadRequest(
+                    new
+                    {
+                        message = "Support user must be a technician"
+                    }
+                );
+            }
+
+            if (supportTechnician.DepartmentId != targetDeptId)
+            {
+                return BadRequest(
+                    new
+                    {
+                        message = "Support technician must belong to the maintenance department for this equipment"
+                    }
+                );
+            }
+
+            if (!supportTechnician.IsActive)
+            {
+                return BadRequest(
+                    new
+                    {
+                        message = "Support technician account is inactive"
+                    }
+                );
+            }
+
+            if (supportTechnician.Id == technician.Id)
+            {
+                return BadRequest(
+                    new
+                    {
+                        message = "Support technician must be different from the main technician"
+                    }
+                );
+            }
+        }
+
         var oldStatus = ticket.Status;
-        // Update ticket hiện tại
-        // Tránh assign lại đúng technician hiện tại.
-        // Nếu không có thay đổi thực sự không cần tạo history mới
+        // Neu technician khong thay doi thi khong can cap nhat.
+        // Tranh tao history moi khi assign dung nguoi hien tai.
         if (ticket.AssignedTechnicianId == request.AssignedTechnicianId)
         {
             return BadRequest(
@@ -511,19 +602,19 @@ public class MaintenanceTicketsController : ControllerBase
                 }
             );
         }
-        // Cập nhật technician phụ trách ticker
+        // Cap nhat technician phu trach ticket.
         ticket.AssignedTechnicianId = request.AssignedTechnicianId;
+        ticket.SupportTechnicianId = request.SupportTechnicianId;
         ticket.Status = TicketStatuses.Assigned;
 
-        //Ghi lịch sử assign
+        // Ghi lai lich su assign.
         var history = new TicketStatusHistory
         {
             MaintenanceTicketId = ticket.Id,
             OldStatus = oldStatus,
             NewStatus = TicketStatuses.Assigned,
 
-            //Chưa có Auth thì tạm hard code
-            //Sau này lấy từ currentUser 
+            // Lay user hien tai tu CurrentUserService.
             ChangedByUserId = _currentUserService.UserId,
             ChangedAt = DateTime.UtcNow,
             Note = request.Note
@@ -531,7 +622,7 @@ public class MaintenanceTicketsController : ControllerBase
 
         _context.TicketStatusHistories.Add(history);
 
-        // Lưu UPDATE ticket + insert history xuống DATABASE
+        // Luu thay doi ticket va history xuong database.
         await _context.SaveChangesAsync();
 
         var response = await _context.MaintenanceTickets
@@ -546,6 +637,8 @@ public class MaintenanceTicketsController : ControllerBase
                 EquipmentId = t.EquipmentId,
                 EquipmentCode = t.Equipment!.Code,
                 EquipmentName = t.Equipment.Name,
+                EquipmentDepartmentId = t.Equipment.DepartmentId,
+                EquipmentMaintenanceDepartmentId = t.Equipment.MaintenanceDepartmentId,
 
                 CreatedByUserId = t.CreatedByUserId,
                 CreatedByUserName = t.CreatedByUser!.FullName,
@@ -553,6 +646,10 @@ public class MaintenanceTicketsController : ControllerBase
                 AssignedTechnicianId = t.AssignedTechnicianId,
                 AssignedTechnicianName = t.AssignedTechnician != null
                     ? t.AssignedTechnician.FullName
+                    : null,
+                SupportTechnicianId = t.SupportTechnicianId,
+                SupportTechnicianName = t.SupportTechnician != null
+                    ? t.SupportTechnician.FullName
                     : null,
 
                 Priority = t.Priority,
@@ -576,6 +673,7 @@ public class MaintenanceTicketsController : ControllerBase
 
         var ticket = await _context.MaintenanceTickets
         .Include(t => t.Equipment)
+        .Include(t => t.CreatedByUser)
         .FirstOrDefaultAsync(t => t.Id == id);
 
         if (ticket is null)
@@ -587,8 +685,8 @@ public class MaintenanceTicketsController : ControllerBase
                 });
         }
 
-        // Ticket luôn gắn với 1 thiết bị
-        // Trạng thái thiết bị cần được đồng bộ với trạng thái ticket
+        // Ticket luon gan voi mot thiet bi.
+        // Trang thai thiet bi phai dong bo voi trang thai ticket.
         var equipment = ticket.Equipment;
         if (equipment is null)
         {
@@ -600,8 +698,8 @@ public class MaintenanceTicketsController : ControllerBase
             );
         }
         var newStatus = request.Status.Trim();
-        //Chỉ cho phép những status có trong workflow xử lý
-        // KHông cho client gửi status tùy ý
+        // Chi cho phep cac status nam trong workflow xu ly.
+        // Khong cho client gui status tuy y.
         if (!new[]
             {
                 TicketStatuses.InProgress,
@@ -619,8 +717,8 @@ public class MaintenanceTicketsController : ControllerBase
             );
         }
 
-        //Ticket đã "Closed" nghĩa là quy trình đã kết thúc hoàn toàn.
-        //Không cho đổi trạng thái nữa để tránh làm sai lịch sử
+        // Ticket da Closed nghia la quy trinh da ket thuc.
+        // Khong cho doi trang thai nua de tranh sai lich su.
 
         if (ticket.Status == TicketStatuses.Closed || ticket.Status == TicketStatuses.Cancelled)
         {
@@ -632,8 +730,8 @@ public class MaintenanceTicketsController : ControllerBase
             );
         }
 
-        //Kiểm tra chuyển trạng thái có đúng workflow không 
-        // Chỉ cho đi từng bước , không cho nhảy cóc
+        // Kiem tra chuyen trang thai co dung workflow khong.
+        // Chi cho di tung buoc, khong cho nhay coc.
 
         if (!TicketWorkflowRules.CanTransition(ticket.Status, newStatus))
         {
@@ -644,8 +742,8 @@ public class MaintenanceTicketsController : ControllerBase
                 }
             );
         }
-        // Muốn chuyển sang InProgress thì ticket phải được assign cho technician trước.
-        // Nếu chưa có AssignedTechnicianId mà cho xử lý thì không biết ai đang phụ trách
+        // Muon chuyen sang InProgress thi ticket phai duoc assign cho technician truoc.
+        // Neu chua co AssignedTechnicianId thi khong xac dinh duoc ai dang phu trach.
 
         if (newStatus == TicketStatuses.InProgress && ticket.AssignedTechnicianId is null)
         {
@@ -657,7 +755,7 @@ public class MaintenanceTicketsController : ControllerBase
             );
         }
 
-        // Chỉ technician được assign mới làm 
+        // Chi technician duoc assign moi duoc cap nhat trang thai xu ly.
         if (newStatus == TicketStatuses.InProgress ||
         newStatus == TicketStatuses.Resolved)
         {
@@ -667,7 +765,7 @@ public class MaintenanceTicketsController : ControllerBase
             }
         }
 
-        // Khi technician báo xử lý xong, bắt buộc phải có kết quả xử lý xong.
+        // Khi technician bao da xu ly xong, bat buoc phai co resolution note.
         if (newStatus == TicketStatuses.Resolved && string.IsNullOrWhiteSpace(request.ResolutionNote))
         {
             return BadRequest(
@@ -682,7 +780,7 @@ public class MaintenanceTicketsController : ControllerBase
 
 
 
-        //Update trạng thái hiện tại của ticket
+        // Cap nhat trang thai hien tai cua ticket.
         ticket.Status = newStatus;
 
         if (newStatus == TicketStatuses.InProgress)
@@ -707,12 +805,10 @@ public class MaintenanceTicketsController : ControllerBase
             equipment.Status = EquipmentStatuses.Active;
         }
 
-        // Requester (người tạo), Admin, hoặc Manager (phòng ban sở hữu thiết bị) được nghiệm thu và đóng ticket
+        // Requester, Admin hoac Manager cua phong ban so huu thiet bi duoc phep dong ticket.
         if (newStatus == TicketStatuses.Closed)
         {
-            var canClose = ticket.CreatedByUserId == userId
-            || role == UserRoles.Admin
-            || (role == UserRoles.Manager && equipment.DepartmentId == departmentId);
+            var canClose = TicketAccessPolicy.CanCloseOrCancel(ticket, _currentUserService);
 
             if (!canClose)
             {
@@ -720,12 +816,10 @@ public class MaintenanceTicketsController : ControllerBase
             }
         }
 
-        // Requester, Admin, hoặc Manager được phép hủy ticket 
+        // Requester, Admin hoac Manager duoc phep huy ticket.
         if (newStatus == TicketStatuses.Cancelled)
         {
-            var canCancel = ticket.CreatedByUserId == userId
-            || role == UserRoles.Admin
-            || (role == UserRoles.Manager && equipment.DepartmentId == departmentId);
+            var canCancel = TicketAccessPolicy.CanCloseOrCancel(ticket, _currentUserService);
 
             if (!canCancel)
             {
@@ -733,9 +827,9 @@ public class MaintenanceTicketsController : ControllerBase
             }
         }
 
-        //Ghi lại lịch sử đổi trạng thái
-        // MaintenanceTicket lưu trạng thái hiện tại
-        // TicketStatusHistory lưu timeline từng lần thay đổi 
+        // Ghi lai lich su doi trang thai.
+        // MaintenanceTicket luu trang thai hien tai.
+        // TicketStatusHistory luu timeline tung lan thay doi.
         var history = new TicketStatusHistory
         {
             MaintenanceTicketId = ticket.Id,
@@ -762,6 +856,8 @@ public class MaintenanceTicketsController : ControllerBase
                 EquipmentId = t.EquipmentId,
                 EquipmentCode = t.Equipment!.Code,
                 EquipmentName = t.Equipment.Name,
+                EquipmentDepartmentId = t.Equipment.DepartmentId,
+                EquipmentMaintenanceDepartmentId = t.Equipment.MaintenanceDepartmentId,
 
                 CreatedByUserId = t.CreatedByUserId,
                 CreatedByUserName = t.CreatedByUser!.FullName,
@@ -769,6 +865,10 @@ public class MaintenanceTicketsController : ControllerBase
                 AssignedTechnicianId = t.AssignedTechnicianId,
                 AssignedTechnicianName = t.AssignedTechnician != null
                 ? t.AssignedTechnician.FullName
+                : null,
+                SupportTechnicianId = t.SupportTechnicianId,
+                SupportTechnicianName = t.SupportTechnician != null
+                ? t.SupportTechnician.FullName
                 : null,
 
                 Priority = t.Priority,
@@ -815,32 +915,21 @@ public class MaintenanceTicketsController : ControllerBase
             );
         }
 
-        var canComment =
-        //Admin được comment mọi ticket
-        role == UserRoles.Admin ||
-        //Manager chỉ comment ticket thuộc phòng ban mình quản lý
-        (role == UserRoles.Manager && ticket.Equipment!.DepartmentId == departmentId)
-        ||
-        //Staff chỉ commment do chính mình tạo 
-        (role == UserRoles.Staff && ticket.CreatedByUserId == userId) ||
-        //Technician chỉ comment ticket được assign xử lý 
-        (role == UserRoles.Technician && ticket.AssignedTechnicianId == userId);
-
-        if (!canComment)
+        if (!TicketAccessPolicy.CanAccess(ticket, _currentUserService))
         {
             return Forbid();
         }
 
-        // Lấy thông tin người dùng đăng nhập
-        // UserId lấy từ JWT token thông qua CurrentService
-        // Cần FullName để trả về TicketCommentResponse
+        // Lay thong tin nguoi dung dang nhap.
+        // UserId lay tu JWT token thong qua CurrentUserService.
+        // Can FullName de tra ve TicketCommentResponse.
 
         var currentUser = await _context.Users
-        // Chỉ đọc dữ liệu, không cập nhật nên dùng AsNoTracking
+        // Chi doc du lieu, khong cap nhat nen dung AsNoTracking.
         .AsNoTracking()
         .Where(user => user.Id == userId)
-        // Chỉ lấy những field cần dùng
-        // Tránh load toàn bộ thông tin User không cần thiết 
+        // Chi lay cac field can dung.
+        // Tranh load toan bo thong tin User khong can thiet.
         .Select(user => new
         {
             user.FullName
@@ -876,7 +965,7 @@ public class MaintenanceTicketsController : ControllerBase
     [HttpGet("{id:int}/comments")]
     public async Task<ActionResult<List<TicketCommentResponse>>> GetCommentById(int id)
     {
-        // Kiểm tra Ticket có tổn tại và người dùng có quyền xem hay không
+        // Kiem tra ticket co ton tai va nguoi dung co quyen xem hay khong.
 
         var ticketQuery = _context.MaintenanceTickets
         .AsNoTracking()
@@ -925,8 +1014,8 @@ public class MaintenanceTicketsController : ControllerBase
                 }
             );
         }
-        // Lấy danh sách lịch sử trạng thái của ticket.
-        // Sắp xếp theo ChagedAt tăng dần để nhìn được timeline từ cũ đến mới
+        // Lay danh sach lich su trang thai cua ticket.
+        // Sap xep theo ChangedAt tang dan de xem timeline tu cu den moi.
         var histories = await _context.TicketStatusHistories
         .Where(history => history.MaintenanceTicketId == id)
         .OrderBy(history => history.ChangedAt)
@@ -945,3 +1034,4 @@ public class MaintenanceTicketsController : ControllerBase
         return Ok(histories);
     }
 }
+

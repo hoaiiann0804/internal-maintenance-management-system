@@ -324,7 +324,7 @@ export function TicketsPage() {
 
                 <CardContent className="p-5 space-y-4">
                   {/* Meta Details Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-xl bg-muted/30 border text-xs">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-3 rounded-xl bg-muted/30 border text-xs">
                     <div>
                       <p className="text-[10px] uppercase font-semibold text-muted-foreground">
                         Thiết bị
@@ -344,11 +344,20 @@ export function TicketsPage() {
                     </div>
                     <div>
                       <p className="text-[10px] uppercase font-semibold text-muted-foreground">
-                        Kỹ thuật viên
+                        Kỹ thuật viên chính
                       </p>
                       <p className="font-medium text-foreground mt-0.5 flex items-center gap-1">
                         <User className="h-3 w-3 text-muted-foreground shrink-0" />
                         {selectedTicket.assignedTechnicianName || "Chưa phân công"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase font-semibold text-muted-foreground">
+                        Kỹ thuật viên hỗ trợ
+                      </p>
+                      <p className="font-medium text-foreground mt-0.5 flex items-center gap-1">
+                        <User className="h-3 w-3 text-muted-foreground shrink-0" />
+                        {selectedTicket.supportTechnicianName || "Không có"}
                       </p>
                     </div>
                     <div>

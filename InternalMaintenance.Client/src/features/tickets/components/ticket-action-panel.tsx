@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import axios from "axios";
 import type { MaintenanceTicketDetail, TicketStatus } from "../../../entities/ticket/model/types";
 import type { RoleName } from "../../../entities/auth/model/types";
+import type { UserQuery } from "../../../entities/user/model/types";
 import { useAuthStore } from "../../auth/model/auth-store";
 import { useAssignTicketMutation } from "../api/use-assign-ticket-mutation";
 import { useChangeTicketStatusMutation } from "../api/use-change-ticket-status-mutation";
@@ -30,6 +31,11 @@ import {
 
 function toastApiError(error: unknown, fallback: string) {
   if (axios.isAxiosError(error)) {
+    if (error.response?.status === 403) {
+      toast.error("Bạn không có quyền thực hiện thao tác này.");
+      return;
+    }
+
     const msg = error.response?.data?.message ?? error.response?.data;
     toast.error(typeof msg === "string" ? msg : fallback);
   } else {
@@ -45,9 +51,13 @@ export function TicketActionPanel({ ticket }: Props) {
   const session = useAuthStore((state) => state.session);
   const role = session?.user.roleName;
   const userId = session?.user.id;
+  const departmentId = session?.user.departmentId;
 
   const [assignTechId, setAssignTechId] = useState<string>(
     ticket.assignedTechnicianId?.toString() ?? "",
+  );
+  const [supportTechId, setSupportTechId] = useState<string>(
+    ticket.supportTechnicianId?.toString() ?? "",
   );
   const [assignNote, setAssignNote] = useState("");
   const [resolutionNote, setResolutionNote] = useState(ticket.resolutionNote ?? "");
@@ -58,17 +68,35 @@ export function TicketActionPanel({ ticket }: Props) {
   const statusMutation = useChangeTicketStatusMutation(ticket.id);
   const commentMutation = useCreateTicketCommentMutation(ticket.id);
 
-  const { data: techPage, isLoading: isTechLoading } = useUsersQuery(
+  useEffect(() => {
+    setAssignTechId(ticket.assignedTechnicianId?.toString() ?? "");
+    setSupportTechId(ticket.supportTechnicianId?.toString() ?? "");
+    setAssignNote("");
+    setResolutionNote(ticket.resolutionNote ?? "");
+    setStatusNote("");
+    setCommentDraft("");
+  }, [ticket]);
+
+  const canAssignTicket =
+    role === "Admin" ||
+    (role === "Manager" &&
+      session?.user.departmentIsMaintenanceTeam &&
+      ticket.equipmentMaintenanceDepartmentId === departmentId);
+
+  const technicianQuery: UserQuery =
     role === "Admin"
       ? { role: "Technician", isActive: true, pageSize: 200 }
-      : role === "Manager"
+      : canAssignTicket
         ? {
             role: "Technician",
             isActive: true,
             pageSize: 200,
-            departmentId: session?.user.departmentId,
+            departmentId: departmentId ?? undefined,
           }
-        : {},
+        : {};
+
+  const { data: techPage, isLoading: isTechLoading } = useUsersQuery(
+    technicianQuery,
   );
   const technicians = techPage?.items ?? [];
 
@@ -84,6 +112,7 @@ export function TicketActionPanel({ ticket }: Props) {
     try {
       await assignMutation.mutateAsync({
         assignedTechnicianId: Number(assignTechId),
+        supportTechnicianId: supportTechId ? Number(supportTechId) : null,
         note: assignNote.trim() || undefined,
       });
       toast.success("Giao việc thành công!");
@@ -132,7 +161,7 @@ export function TicketActionPanel({ ticket }: Props) {
   return (
     <div className="space-y-4">
       {/* ── ASSIGN (Admin / Manager) ─────────────────────────── */}
-      {(role === "Admin" || role === "Manager") &&
+      {canAssignTicket &&
         (ticket.status === "Pending" || ticket.status === "Assigned") && (
           <Card className="border-primary/20 bg-primary/5">
             <CardHeader className="pb-3">
@@ -143,7 +172,7 @@ export function TicketActionPanel({ ticket }: Props) {
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
               <div className="space-y-1.5">
-                <Label htmlFor="assign-tech">Kỹ thuật viên</Label>
+                <Label htmlFor="assign-tech">Kỹ thuật viên chính</Label>
                 <select
                   id="assign-tech"
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
@@ -159,6 +188,28 @@ export function TicketActionPanel({ ticket }: Props) {
                       {t.fullName}
                     </option>
                   ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="support-tech">Kỹ thuật viên hỗ trợ</Label>
+                <select
+                  id="support-tech"
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  value={supportTechId}
+                  onChange={(e) => setSupportTechId(e.target.value)}
+                  disabled={isWorking}
+                >
+                  <option value="" className="bg-background text-foreground">
+                    Không chọn
+                  </option>
+                  {technicians
+                    .filter((t) => t.id.toString() !== assignTechId)
+                    .map((t) => (
+                      <option key={t.id} value={t.id} className="bg-background text-foreground">
+                        {t.fullName}
+                      </option>
+                    ))}
                 </select>
               </div>
 

@@ -166,6 +166,7 @@ export function EquipmentModal({ equipment, isOpen, onClose }: Props) {
             <Label htmlFor="eq-dept">
               Phòng ban sở hữu <span className="text-destructive">*</span>
             </Label>
+            {/* Leave blank to mean "self-maintained" / no dedicated maintenance department */}
             <select
               id="eq-dept"
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"

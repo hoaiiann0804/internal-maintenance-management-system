@@ -7,6 +7,7 @@ export interface AuthUser {
   roleName: RoleName;
   departmentId: number;
   departmentName?: string | null;
+  departmentIsMaintenanceTeam: boolean;
   isActive: boolean;
   mustChangePassword: boolean;
 }

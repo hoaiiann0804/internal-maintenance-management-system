@@ -4,21 +4,21 @@ namespace InternalMaintenance.Api.Modules.Tickets.Contracts;
 
 public class ChangeTicketStatusRequest
 {
-    // dùng để thay đổi trạng thái 
-    // Pending -> Assigned -> InProgres -> Rosolved -> Close
+    // Dung de thay doi trang thai ticket trong workflow.
+    // Thu tu tham chieu: Pending -> Assigned -> InProgress -> Resolved -> Closed.
 
-    // Trạng thái mới mà client muốn đổi sang.
-    // KHông đặt mặc định là "Pending", vì đây là request đổi trạng thái
-    // Client phải gửi rõ muốn đổi sang Assigned, InProgress, Resolved hoặc Closed
+    // Trang thai moi ma client muon doi sang.
+    // Khong dat mac dinh la Pending vi day la request doi trang thai.
+    // Client phai gui ro trang thai muon chuyen sang.
 
-    //Nếu thiếu Status, API phải thông báo lỗi validation thay vì tự hiểu "Pending"
+    // Neu thieu Status, API phai tra loi validation thay vi tu hieu ngam.
     [Required(ErrorMessage = "Status is required")]
     [StringLength(30, ErrorMessage = "Status must not exceed 30 characters")]
     public string Status { get; set; } = string.Empty;
 
-    // Kết quả xử lý cuối cùng, thường chỉ cần khi status = Resolved.
+    // Ket qua xu ly cuoi cung, thuong chi can khi status = Resolved.
     public string? ResolutionNote { get; set; }
 
-    // Ghi chú lần đổi trạng thái này, lưu vào TicketStatusHistory.Note.
+    // Ghi chu cho lan doi trang thai nay, se luu vao TicketStatusHistory.Note.
     public string? Note { get; set; }
 }

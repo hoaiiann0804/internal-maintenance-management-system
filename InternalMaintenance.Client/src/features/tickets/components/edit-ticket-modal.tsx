@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import axios from "axios";
 import { useUpdateTicketMutation } from "../api/use-update-ticket-mutation";
@@ -28,6 +28,19 @@ export function EditTicketModal({ ticket, isOpen, onClose }: Props) {
   const [title, setTitle] = useState(ticket?.title ?? "");
   const [description, setDescription] = useState(ticket?.description ?? "");
   const [priority, setPriority] = useState<TicketPriority>(ticket?.priority ?? "Medium");
+
+  useEffect(() => {
+    if (ticket && isOpen) {
+      setTitle(ticket.title ?? "");
+      setDescription(ticket.description ?? "");
+      setPriority(ticket.priority ?? "Medium");
+    } else if (!isOpen) {
+      // Optional: reset state on close if you want, or just wait for next open
+      setTitle("");
+      setDescription("");
+      setPriority("Medium");
+    }
+  }, [ticket, isOpen]);
 
   const updateTicketMutation = useUpdateTicketMutation(ticket?.id ?? null);
 
