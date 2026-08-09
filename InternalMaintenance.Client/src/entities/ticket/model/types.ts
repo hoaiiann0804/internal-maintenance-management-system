@@ -30,6 +30,9 @@ export interface MaintenanceTicket {
   closedAt: string | null;
   dueAt?: string | null;
   slaStatus?: SlaStatus | null;
+
+  cancellationReason?: string | null;
+
 }
 
 export interface MaintenanceTicketDetail extends MaintenanceTicket {
@@ -89,6 +92,7 @@ export interface AssignTicketRequest {
 export interface ChangeTicketStatusRequest {
   status: TicketStatus;
   resolutionNote?: string;
+  cancellationReason?: string;
   note?: string;
 }
 

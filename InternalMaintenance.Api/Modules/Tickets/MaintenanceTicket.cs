@@ -29,6 +29,7 @@ public class MaintenanceTicket
     public string Priority { get; set; } = "Medium";
     public string Status { get; set; } = "Pending";
     public string? ResolutionNote { get; set; }
+    public string? CancellationReason { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ResolvedAt { get; set; }
     public DateTime? ClosedAt { get; set; }

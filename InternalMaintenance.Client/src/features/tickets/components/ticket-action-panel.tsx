@@ -19,6 +19,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   UserCheck,
   CheckCircle,
   Play,
@@ -27,6 +35,7 @@ import {
   Paperclip,
   MessageSquare,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 
 function toastApiError(error: unknown, fallback: string) {
@@ -119,6 +128,43 @@ export function TicketActionPanel({ ticket }: Props) {
       setAssignNote("");
     } catch (e) {
       toastApiError(e, "Không thể giao việc.");
+    }
+  };
+
+  const PREDEFINED_CANCEL_REASONS = [
+    "Thiết bị đã tự hoạt động bình thường / Đã tự khắc phục",
+    "Yêu cầu tạo nhầm hoặc bị trùng lặp ticket khác",
+    "Không còn nhu cầu sử dụng / Hủy sự cố",
+    "Lý do khác",
+  ];
+
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [cancelReasonPreset, setCancelReasonPreset] = useState<string>(
+    PREDEFINED_CANCEL_REASONS[0],
+  );
+  const [customCancelReason, setCustomCancelReason] = useState<string>("");
+
+  const handleConfirmCancel = async () => {
+    const finalReason =
+      cancelReasonPreset === "Lý do khác" ? customCancelReason.trim() : cancelReasonPreset;
+
+    if (!finalReason) {
+      toast.error("Vui lòng chọn hoặc nhập lý do hủy ticket.");
+      return;
+    }
+
+    try {
+      await statusMutation.mutateAsync({
+        status: "Cancelled",
+        cancellationReason: finalReason,
+        note: statusNote.trim() || undefined,
+      });
+      toast.success("Đã hủy ticket thành công.");
+      setIsCancelDialogOpen(false);
+      setStatusNote("");
+      setCustomCancelReason("");
+    } catch (e) {
+      toastApiError(e, "Không thể hủy ticket.");
     }
   };
 
@@ -321,7 +367,7 @@ export function TicketActionPanel({ ticket }: Props) {
                   type="button"
                   variant="destructive"
                   size="sm"
-                  onClick={() => handleStatus("Cancelled")}
+                  onClick={() => setIsCancelDialogOpen(true)}
                   disabled={isWorking}
                 >
                   <XCircle className="h-4 w-4 mr-1" />
@@ -384,6 +430,74 @@ export function TicketActionPanel({ ticket }: Props) {
           )}
         </CardContent>
       </Card>
+
+      {/* ── CANCEL TICKET DIALOG ─────────────────────────────── */}
+      <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              <span>Xác nhận Hủy Ticket</span>
+            </DialogTitle>
+            <DialogDescription>
+              Vui lòng chọn hoặc nhập lý do hủy ticket này để lưu vào nhật ký hệ thống.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">
+                Lý do hủy ticket <span className="text-destructive">*</span>
+              </Label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                value={cancelReasonPreset}
+                onChange={(e) => setCancelReasonPreset(e.target.value)}
+              >
+                {PREDEFINED_CANCEL_REASONS.map((reason) => (
+                  <option key={reason} value={reason} className="bg-background text-foreground">
+                    {reason}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {cancelReasonPreset === "Lý do khác" && (
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">
+                  Chi tiết lý do hủy khác <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  rows={3}
+                  value={customCancelReason}
+                  onChange={(e) => setCustomCancelReason(e.target.value)}
+                  placeholder="Nhập lý do cụ thể vì sao hủy ticket..."
+                />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsCancelDialogOpen(false)}
+              disabled={statusMutation.isPending}
+            >
+              Hủy bỏ
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleConfirmCancel}
+              disabled={statusMutation.isPending}
+            >
+              {statusMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Xác nhận Hủy
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

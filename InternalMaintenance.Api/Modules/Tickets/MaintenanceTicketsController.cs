@@ -144,11 +144,15 @@ public class MaintenanceTicketsController : ControllerBase
                 Priority = ticket.Priority,
                 Status = ticket.Status,
                 ResolutionNote = ticket.ResolutionNote,
+                CancellationReason = ticket.CancellationReason,
                 CreatedAt = ticket.CreatedAt,
                 ResolvedAt = ticket.ResolvedAt,
+
                 ClosedAt = ticket.ClosedAt,
                 DueAt = ticket.DueAt,
                 SlaStatus = ticket.SlaStatus
+
+                ClosedAt = ticket.ClosedAt
             }
         ).ToListAsync();
         return Ok(tickets.ToPagedResponse(query, totalItems));
@@ -188,11 +192,15 @@ public class MaintenanceTicketsController : ControllerBase
                 Priority = ticket.Priority,
                 Status = ticket.Status,
                 ResolutionNote = ticket.ResolutionNote,
+                CancellationReason = ticket.CancellationReason,
                 CreatedAt = ticket.CreatedAt,
                 ResolvedAt = ticket.ResolvedAt,
+
                 ClosedAt = ticket.ClosedAt,
                 DueAt = ticket.DueAt,
                 SlaStatus = ticket.SlaStatus
+                ClosedAt = ticket.ClosedAt
+
             }
         ).FirstOrDefaultAsync();
 
@@ -307,9 +315,11 @@ public class MaintenanceTicketsController : ControllerBase
             Status = TicketStatuses.Pending,
             CreatedByUserId = userId,
             AssignedTechnicianId = null,
+
             CreatedAt = DateTime.UtcNow,
             DueAt = SlaPolicy.CalculateDueAt(DateTime.UtcNow, priority),
             SlaStatus = SlaPolicy.InSLA
+            CreatedAt = DateTime.UtcNow
         };
 
         _context.MaintenanceTickets.Add(ticket);
@@ -336,6 +346,7 @@ public class MaintenanceTicketsController : ControllerBase
                 Priority = t.Priority,
                 Status = t.Status,
                 ResolutionNote = t.ResolutionNote,
+                CancellationReason = t.CancellationReason,
                 CreatedAt = t.CreatedAt,
                 ResolvedAt = t.ResolvedAt,
                 ClosedAt = t.ClosedAt,
@@ -442,6 +453,7 @@ public class MaintenanceTicketsController : ControllerBase
             Priority = ticket.Priority,
             Status = ticket.Status,
             ResolutionNote = ticket.ResolutionNote,
+            CancellationReason = ticket.CancellationReason,
             CreatedAt = ticket.CreatedAt,
             ResolvedAt = ticket.ResolvedAt,
             ClosedAt = ticket.ClosedAt,
@@ -680,6 +692,7 @@ public class MaintenanceTicketsController : ControllerBase
                 Priority = t.Priority,
                 Status = t.Status,
                 ResolutionNote = t.ResolutionNote,
+                CancellationReason = t.CancellationReason,
                 CreatedAt = t.CreatedAt,
                 ResolvedAt = t.ResolvedAt,
                 ClosedAt = t.ClosedAt,
@@ -803,6 +816,21 @@ public class MaintenanceTicketsController : ControllerBase
             );
         }
 
+        // Khi nhan vien/quan ly huy ticket, bat buoc phai co ly do huy.
+        if (newStatus == TicketStatuses.Cancelled)
+        {
+            var reason = !string.IsNullOrWhiteSpace(request.CancellationReason) ? request.CancellationReason : request.Note;
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                return BadRequest(
+                    new
+                    {
+                        message = "Cancellation reason is required when cancelling a ticket"
+                    }
+                );
+            }
+        }
+
         var oldStatus = ticket.Status;
 
 
@@ -835,6 +863,8 @@ public class MaintenanceTicketsController : ControllerBase
         if (newStatus == TicketStatuses.Cancelled)
         {
             equipment.Status = EquipmentStatuses.Active;
+            var reason = !string.IsNullOrWhiteSpace(request.CancellationReason) ? request.CancellationReason : request.Note;
+            ticket.CancellationReason = reason?.Trim();
         }
 
         // Requester, Admin hoac Manager cua phong ban so huu thiet bi duoc phep dong ticket.
@@ -906,6 +936,7 @@ public class MaintenanceTicketsController : ControllerBase
                 Priority = t.Priority,
                 Status = t.Status,
                 ResolutionNote = t.ResolutionNote,
+                CancellationReason = t.CancellationReason,
                 CreatedAt = t.CreatedAt,
                 ResolvedAt = t.ResolvedAt,
                 ClosedAt = t.ClosedAt,
