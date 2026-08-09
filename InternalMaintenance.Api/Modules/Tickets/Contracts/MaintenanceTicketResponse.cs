@@ -25,6 +25,7 @@ public class MaintenanceTicketResponse
     public string Priority { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string? ResolutionNote { get; set; }
+    public string? CancellationReason { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? ResolvedAt { get; set; }
     public DateTime? ClosedAt { get; set; }
