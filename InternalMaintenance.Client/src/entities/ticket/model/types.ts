@@ -4,6 +4,7 @@ export type TicketStatus =
   "Pending" | "Assigned" | "InProgress" | "Resolved" | "Closed" | "Cancelled";
 export type TicketPriority = "Low" | "Medium" | "High" | "Critical";
 export type EquipmentStatus = "Active" | "Inactive" | "UnderMaintenance" | "Retired";
+export type SlaStatus = "InSLA" | "NearBreach" | "Breached" | "MetSLA" | "MissedSLA";
 
 export interface MaintenanceTicket {
   id: number;
@@ -27,6 +28,8 @@ export interface MaintenanceTicket {
   createdAt: string;
   resolvedAt: string | null;
   closedAt: string | null;
+  dueAt?: string | null;
+  slaStatus?: SlaStatus | null;
 }
 
 export interface MaintenanceTicketDetail extends MaintenanceTicket {

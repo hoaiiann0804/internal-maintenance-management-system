@@ -46,7 +46,9 @@ export function formatSlaDuration(ms: number): string {
 }
 
 export function calculateSlaInfo(ticket: MaintenanceTicket): SlaInfo {
-  const deadline = getSlaDeadline(ticket.createdAt, ticket.priority);
+  const deadline = ticket.dueAt
+    ? parseApiDate(ticket.dueAt)
+    : getSlaDeadline(ticket.createdAt, ticket.priority);
   const deadlineFormatted = formatDateTime(deadline);
 
   const isFinalized =
@@ -66,6 +68,29 @@ export function calculateSlaInfo(ticket: MaintenanceTicket): SlaInfo {
 
   // Đã giải quyết / Đã đóng -> tính điểm kết thúc
   if (isFinalized) {
+    if (ticket.slaStatus === "MetSLA") {
+      return {
+        statusType: "MetSLA",
+        deadline,
+        deadlineFormatted,
+        badgeLabel: "Đạt SLA",
+        badgeVariant: "success",
+        remainingText: "Hoàn tất đúng hạn SLA",
+        isBreached: false,
+      };
+    }
+    if (ticket.slaStatus === "MissedSLA") {
+      return {
+        statusType: "MissedSLA",
+        deadline,
+        deadlineFormatted,
+        badgeLabel: "Trễ SLA",
+        badgeVariant: "destructive",
+        remainingText: "Đã trễ hạn SLA",
+        isBreached: true,
+      };
+    }
+
     const endTimestamp = ticket.resolvedAt || ticket.closedAt || ticket.createdAt;
     const endDate = parseApiDate(endTimestamp);
     const diffMs = deadline.getTime() - endDate.getTime();
