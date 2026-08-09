@@ -33,6 +33,18 @@ public class MaintenanceTicket
     public DateTime? ResolvedAt { get; set; }
     public DateTime? ClosedAt { get; set; }
 
+    // Thông tin cấu hình SLA 
+    // Hạn chót cần xử lý xong ticket
+    public DateTime? DueAt { get; set; }
+    // Trạng thái SLA (ví dụ: InSLA, MetSLA, MissedSLA, Breached)
+    public string SlaStatus { get; set; } = "InSLA";
+    // Thời điểm đã gửi cảnh báo sắp vi phạm
+    public DateTime? NearBreachNotifiedAt { get; set; }
+    // Thời điểm đã gửi cảnh báo vi phạm
+    public DateTime? BreachedNotifiedAt { get; set; }
+    // Thời điểm đã gửi cảnh báo leo thang
+    public DateTime? EscalatedNotifiedAt { get; set; }
+
     public ICollection<TicketStatusHistory> StatusHistories { get; set; } = new List<TicketStatusHistory>();
     public ICollection<TicketComment> Comments { get; set; } = new List<TicketComment>();
     public ICollection<TicketAttachment> Attachments { get; set; } = new List<TicketAttachment>();

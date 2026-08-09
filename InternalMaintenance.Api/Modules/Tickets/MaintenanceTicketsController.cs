@@ -1,4 +1,4 @@
-﻿using InternalMaintenance.Api.Common;
+using InternalMaintenance.Api.Common;
 using InternalMaintenance.Api.Common.Pagination;
 using InternalMaintenance.Api.Constants;
 using InternalMaintenance.Api.Data;
@@ -147,6 +147,8 @@ public class MaintenanceTicketsController : ControllerBase
                 CreatedAt = ticket.CreatedAt,
                 ResolvedAt = ticket.ResolvedAt,
                 ClosedAt = ticket.ClosedAt,
+                DueAt = ticket.DueAt,
+                SlaStatus = ticket.SlaStatus
             }
         ).ToListAsync();
         return Ok(tickets.ToPagedResponse(query, totalItems));
@@ -189,6 +191,8 @@ public class MaintenanceTicketsController : ControllerBase
                 CreatedAt = ticket.CreatedAt,
                 ResolvedAt = ticket.ResolvedAt,
                 ClosedAt = ticket.ClosedAt,
+                DueAt = ticket.DueAt,
+                SlaStatus = ticket.SlaStatus
             }
         ).FirstOrDefaultAsync();
 
@@ -304,6 +308,8 @@ public class MaintenanceTicketsController : ControllerBase
             CreatedByUserId = userId,
             AssignedTechnicianId = null,
             CreatedAt = DateTime.UtcNow,
+            DueAt = SlaPolicy.CalculateDueAt(DateTime.UtcNow, priority),
+            SlaStatus = SlaPolicy.InSLA
         };
 
         _context.MaintenanceTickets.Add(ticket);
@@ -332,7 +338,9 @@ public class MaintenanceTicketsController : ControllerBase
                 ResolutionNote = t.ResolutionNote,
                 CreatedAt = t.CreatedAt,
                 ResolvedAt = t.ResolvedAt,
-                ClosedAt = t.ClosedAt
+                ClosedAt = t.ClosedAt,
+                DueAt = t.DueAt,
+                SlaStatus = t.SlaStatus
             }
         ).FirstOrDefaultAsync();
 
@@ -367,6 +375,13 @@ public class MaintenanceTicketsController : ControllerBase
         var userId = _currentUserService.UserId;
         var department = _currentUserService.DepartmentId;
 
+        // Khong cho phep bat ky ai (ke ca Admin) sua thong tin ticket khi da chot (Closed/Resolved/Cancelled)
+        // De tranh viec vo tinh cap nhat lai SlaStatus hoac DueAt.
+        if (ticket.Status == TicketStatuses.Closed || ticket.Status == TicketStatuses.Resolved || ticket.Status == TicketStatuses.Cancelled)
+        {
+            return BadRequest(new { message = "Cannot edit a finalized ticket" });
+        }
+
         // Requester, bat ke role nao, chi duoc sua ticket cua minh khi ticket con Pending.
         if (ticket.CreatedByUserId == userId)
         {
@@ -391,6 +406,14 @@ public class MaintenanceTicketsController : ControllerBase
         if (!TicketWorkflowRules.IsAllowedPriority(request.Priority))
         {
             return BadRequest("Invalid priority");
+        }
+
+        if (ticket.Priority != request.Priority.Trim())
+        {
+            ticket.DueAt = SlaPolicy.CalculateDueAt(ticket.CreatedAt, request.Priority.Trim());
+            ticket.NearBreachNotifiedAt = null;
+            ticket.BreachedNotifiedAt = null;
+            ticket.EscalatedNotifiedAt = null;
         }
 
         ticket.Title = request.Title.Trim();
@@ -421,7 +444,9 @@ public class MaintenanceTicketsController : ControllerBase
             ResolutionNote = ticket.ResolutionNote,
             CreatedAt = ticket.CreatedAt,
             ResolvedAt = ticket.ResolvedAt,
-            ClosedAt = ticket.ClosedAt
+            ClosedAt = ticket.ClosedAt,
+            DueAt = ticket.DueAt,
+            SlaStatus = ticket.SlaStatus
         };
 
         return Ok(response);
@@ -657,7 +682,9 @@ public class MaintenanceTicketsController : ControllerBase
                 ResolutionNote = t.ResolutionNote,
                 CreatedAt = t.CreatedAt,
                 ResolvedAt = t.ResolvedAt,
-                ClosedAt = t.ClosedAt
+                ClosedAt = t.ClosedAt,
+                DueAt = t.DueAt,
+                SlaStatus = t.SlaStatus
 
             }).FirstAsync();
         return Ok(response);
@@ -792,6 +819,11 @@ public class MaintenanceTicketsController : ControllerBase
         {
             ticket.ResolutionNote = request.ResolutionNote?.Trim();
             ticket.ResolvedAt = DateTime.UtcNow;
+            
+            if (ticket.DueAt.HasValue)
+            {
+                ticket.SlaStatus = ticket.ResolvedAt <= ticket.DueAt.Value ? SlaPolicy.MetSLA : SlaPolicy.MissedSLA;
+            }
         }
 
         if (newStatus == TicketStatuses.Closed)
@@ -876,7 +908,9 @@ public class MaintenanceTicketsController : ControllerBase
                 ResolutionNote = t.ResolutionNote,
                 CreatedAt = t.CreatedAt,
                 ResolvedAt = t.ResolvedAt,
-                ClosedAt = t.ClosedAt
+                ClosedAt = t.ClosedAt,
+                DueAt = t.DueAt,
+                SlaStatus = t.SlaStatus
             }
         ).FirstAsync();
 
