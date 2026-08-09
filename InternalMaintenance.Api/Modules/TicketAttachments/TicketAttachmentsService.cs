@@ -401,6 +401,7 @@ public class TicketAttachmentsService : ITicketAttachmentsService
 
         if (!TicketAttachmentRules.IsAllowedFileSize(request.FileSize))
         {
+            // Kích thước không hợp lệ hoặc vượt quá 10MB
             errorMessage =
                 $"File size is invalid or exceeds {TicketAttachmentRules.MaxUploadFileSizeBytes / 1024 / 1024} MB";
             return false;
@@ -414,6 +415,7 @@ public class TicketAttachmentsService : ITicketAttachmentsService
     {
         return await _context.MaintenanceTickets
             .Include(ticket => ticket.Equipment)
+            .Include(ticket => ticket.CreatedByUser)
             .FirstOrDefaultAsync(ticket => ticket.Id == ticketId);
     }
 

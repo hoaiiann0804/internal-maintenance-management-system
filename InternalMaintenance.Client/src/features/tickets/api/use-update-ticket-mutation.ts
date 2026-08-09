@@ -5,7 +5,7 @@ import { useAuthStore } from "../../auth/model/auth-store";
 import { updateTicket } from "../../../shared/api/tickets";
 
 function isAuthError(error: unknown) {
-  return axios.isAxiosError(error) && [401, 403].includes(error.response?.status ?? 0);
+  return axios.isAxiosError(error) && error.response?.status === 401;
 }
 
 export function useUpdateTicketMutation(ticketId: number | null) {

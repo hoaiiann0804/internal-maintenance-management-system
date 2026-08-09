@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import type { MaintenanceTicketDetail, TicketStatus } from "../../../entities/ticket/model/types";
 import type { RoleName } from "../../../entities/auth/model/types";
+import type { UserQuery } from "../../../entities/user/model/types";
 import { useAuthStore } from "../../auth/model/auth-store";
 import { useAssignTicketMutation } from "../api/use-assign-ticket-mutation";
 import { useChangeTicketStatusMutation } from "../api/use-change-ticket-status-mutation";
@@ -30,6 +31,11 @@ import {
 
 function toastApiError(error: unknown, fallback: string) {
   if (axios.isAxiosError(error)) {
+    if (error.response?.status === 403) {
+      toast.error("Bạn không có quyền thực hiện thao tác này.");
+      return;
+    }
+
     const msg = error.response?.data?.message ?? error.response?.data;
     toast.error(typeof msg === "string" ? msg : fallback);
   } else {
@@ -45,31 +51,53 @@ export function TicketActionPanel({ ticket }: Props) {
   const session = useAuthStore((state) => state.session);
   const role = session?.user.roleName;
   const userId = session?.user.id;
+  const departmentId = session?.user.departmentId;
 
   const [assignTechId, setAssignTechId] = useState<string>(
     ticket.assignedTechnicianId?.toString() ?? "",
+  );
+  const [supportTechId, setSupportTechId] = useState<string>(
+    ticket.supportTechnicianId?.toString() ?? "",
   );
   const [assignNote, setAssignNote] = useState("");
   const [resolutionNote, setResolutionNote] = useState(ticket.resolutionNote ?? "");
   const [statusNote, setStatusNote] = useState("");
   const [commentDraft, setCommentDraft] = useState("");
 
+  const [prevTicket, setPrevTicket] = useState(ticket);
+  if (ticket !== prevTicket) {
+    setPrevTicket(ticket);
+    setAssignTechId(ticket.assignedTechnicianId?.toString() ?? "");
+    setSupportTechId(ticket.supportTechnicianId?.toString() ?? "");
+    setAssignNote("");
+    setResolutionNote(ticket.resolutionNote ?? "");
+    setStatusNote("");
+    setCommentDraft("");
+  }
+
   const assignMutation = useAssignTicketMutation(ticket.id);
   const statusMutation = useChangeTicketStatusMutation(ticket.id);
   const commentMutation = useCreateTicketCommentMutation(ticket.id);
 
-  const { data: techPage, isLoading: isTechLoading } = useUsersQuery(
+  const canAssignTicket =
+    role === "Admin" ||
+    (role === "Manager" &&
+      session?.user.departmentIsMaintenanceTeam &&
+      ticket.equipmentMaintenanceDepartmentId === departmentId);
+
+  const technicianQuery: UserQuery =
     role === "Admin"
       ? { role: "Technician", isActive: true, pageSize: 200 }
-      : role === "Manager"
+      : canAssignTicket
         ? {
             role: "Technician",
             isActive: true,
             pageSize: 200,
-            departmentId: session?.user.departmentId,
+            departmentId: departmentId ?? undefined,
           }
-        : {},
-  );
+        : {};
+
+  const { data: techPage, isLoading: isTechLoading } = useUsersQuery(technicianQuery);
   const technicians = techPage?.items ?? [];
 
   const isFinalized = ticket.status === "Closed" || ticket.status === "Cancelled";
@@ -84,6 +112,7 @@ export function TicketActionPanel({ ticket }: Props) {
     try {
       await assignMutation.mutateAsync({
         assignedTechnicianId: Number(assignTechId),
+        supportTechnicianId: supportTechId ? Number(supportTechId) : null,
         note: assignNote.trim() || undefined,
       });
       toast.success("Giao việc thành công!");
@@ -132,65 +161,86 @@ export function TicketActionPanel({ ticket }: Props) {
   return (
     <div className="space-y-4">
       {/* ── ASSIGN (Admin / Manager) ─────────────────────────── */}
-      {(role === "Admin" || role === "Manager") &&
-        (ticket.status === "Pending" || ticket.status === "Assigned") && (
-          <Card className="border-primary/20 bg-primary/5">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2 text-primary">
-                <UserCheck className="h-4 w-4" />
-                <span>Phân công kỹ thuật viên</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-0">
-              <div className="space-y-1.5">
-                <Label htmlFor="assign-tech">Kỹ thuật viên</Label>
-                <select
-                  id="assign-tech"
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                  value={assignTechId}
-                  onChange={(e) => setAssignTechId(e.target.value)}
-                  disabled={isWorking}
-                >
-                  <option value="" className="bg-background text-foreground">
-                    {isTechLoading ? "Đang tải..." : "-- Chọn kỹ thuật viên --"}
+      {canAssignTicket && (ticket.status === "Pending" || ticket.status === "Assigned") && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2 text-primary">
+              <UserCheck className="h-4 w-4" />
+              <span>Phân công kỹ thuật viên</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-0">
+            <div className="space-y-1.5">
+              <Label htmlFor="assign-tech">Kỹ thuật viên chính</Label>
+              <select
+                id="assign-tech"
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                value={assignTechId}
+                onChange={(e) => setAssignTechId(e.target.value)}
+                disabled={isWorking}
+              >
+                <option value="" className="bg-background text-foreground">
+                  {isTechLoading ? "Đang tải..." : "-- Chọn kỹ thuật viên --"}
+                </option>
+                {technicians.map((t) => (
+                  <option key={t.id} value={t.id} className="bg-background text-foreground">
+                    {t.fullName}
                   </option>
-                  {technicians.map((t) => (
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="support-tech">Kỹ thuật viên hỗ trợ</Label>
+              <select
+                id="support-tech"
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                value={supportTechId}
+                onChange={(e) => setSupportTechId(e.target.value)}
+                disabled={isWorking}
+              >
+                <option value="" className="bg-background text-foreground">
+                  Không chọn
+                </option>
+                {technicians
+                  .filter((t) => t.id.toString() !== assignTechId)
+                  .map((t) => (
                     <option key={t.id} value={t.id} className="bg-background text-foreground">
                       {t.fullName}
                     </option>
                   ))}
-                </select>
-              </div>
+              </select>
+            </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="assign-note">Ghi chú phân công</Label>
-                <Textarea
-                  id="assign-note"
-                  rows={2}
-                  value={assignNote}
-                  onChange={(e) => setAssignNote(e.target.value)}
-                  placeholder="Ví dụ: Xử lý trước 5 giờ chiều..."
-                  disabled={isWorking}
-                />
-              </div>
-
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleAssign}
+            <div className="space-y-1.5">
+              <Label htmlFor="assign-note">Ghi chú phân công</Label>
+              <Textarea
+                id="assign-note"
+                rows={2}
+                value={assignNote}
+                onChange={(e) => setAssignNote(e.target.value)}
+                placeholder="Ví dụ: Xử lý trước 5 giờ chiều..."
                 disabled={isWorking}
-                className="w-full sm:w-auto"
-              >
-                {assignMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                ) : (
-                  <UserCheck className="h-4 w-4 mr-1" />
-                )}
-                Giao việc
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+              />
+            </div>
+
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleAssign}
+              disabled={isWorking}
+              className="w-full sm:w-auto"
+            >
+              {assignMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              ) : (
+                <UserCheck className="h-4 w-4 mr-1" />
+              )}
+              Giao việc
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── STATUS TRANSITIONS ───────────────────────────────── */}
       {!isFinalized && (

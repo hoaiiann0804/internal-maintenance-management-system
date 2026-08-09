@@ -13,10 +13,14 @@ export interface MaintenanceTicket {
   equipmentId: number;
   equipmentCode: string;
   equipmentName: string;
+  equipmentDepartmentId: number;
+  equipmentMaintenanceDepartmentId: number | null;
   createdByUserId: number;
   createdByUserName: string;
   assignedTechnicianId: number | null;
   assignedTechnicianName: string | null;
+  supportTechnicianId: number | null;
+  supportTechnicianName: string | null;
   priority: TicketPriority;
   status: TicketStatus;
   resolutionNote: string;
@@ -75,6 +79,7 @@ export interface PagedResponse<T> {
 
 export interface AssignTicketRequest {
   assignedTechnicianId: number;
+  supportTechnicianId?: number | null;
   note?: string;
 }
 

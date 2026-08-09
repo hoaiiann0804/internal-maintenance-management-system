@@ -12,6 +12,7 @@ public class AuthUserResponse
     public string RoleName { get; set; } = string.Empty;
     public int? DepartmentId { get; set; }
     public string? DepartmentName { get; set; }
+    public bool DepartmentIsMaintenanceTeam { get; set; }
 
     public bool IsActive { get; set; }
     public bool MustChangePassword { get; set; }

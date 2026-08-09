@@ -31,7 +31,11 @@ export function CreateTicketModal({ isOpen, onClose }: { isOpen: boolean; onClos
     isOpen ? { pageSize: 500 } : {},
   );
 
-  const availableEquipment = (equipmentPage?.items ?? []).filter((eq) => eq.status !== "Retired");
+  // Only show equipment that is active and has a dedicated maintenance department.
+  // Self-managed equipment (maintenanceDepartmentId = null) is intentionally excluded.
+  const availableEquipment = (equipmentPage?.items ?? []).filter(
+    (eq) => eq.status !== "Retired" && eq.maintenanceDepartmentId !== null,
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,6 +111,7 @@ export function CreateTicketModal({ isOpen, onClose }: { isOpen: boolean; onClos
             <Label htmlFor="create-equipment">
               Thiết bị <span className="text-destructive">*</span>
             </Label>
+            {/* Hide self-managed equipment to keep ticket creation aligned with business rules. */}
             <select
               id="create-equipment"
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
@@ -124,6 +129,10 @@ export function CreateTicketModal({ isOpen, onClose }: { isOpen: boolean; onClos
                 </option>
               ))}
             </select>
+            <p className="text-[11px] text-muted-foreground">
+              Self-managed equipment is hidden here because it should not create maintenance
+              tickets.
+            </p>
           </div>
 
           <div className="space-y-1.5">

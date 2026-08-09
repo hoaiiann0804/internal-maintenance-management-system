@@ -1,13 +1,13 @@
-
 using InternalMaintenance.Api.Common;
+using InternalMaintenance.Api.Common.Pagination;
 using InternalMaintenance.Api.Constants;
 using InternalMaintenance.Api.Data;
-using InternalMaintenance.Api.Common.Pagination;
 using InternalMaintenance.Api.Models;
 using InternalMaintenance.Api.Modules.Departments.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+
 namespace InternalMaintenance.Api.Modules.Departments;
 
 [ApiController]
@@ -15,6 +15,7 @@ namespace InternalMaintenance.Api.Modules.Departments;
 public class DepartmentsController : ControllerBase
 {
     private readonly AppDbContext _context;
+
     public DepartmentsController(AppDbContext context)
     {
         _context = context;
@@ -23,47 +24,43 @@ public class DepartmentsController : ControllerBase
     [Authorize]
     [HttpGet]
     public async Task<ActionResult<PagedResponse<DepartmentResponse>>> GetDepartments(
-        [FromQuery] DepartmentQuery query
-    )
+        [FromQuery] DepartmentQuery query)
     {
         var departmentQuery = _context.Departments
-        .AsNoTracking()
-        .AsQueryable();
+            .AsNoTracking()
+            .AsQueryable();
 
         var keyword = query.Keyword?.Trim();
         if (!string.IsNullOrWhiteSpace(keyword))
         {
-            departmentQuery = departmentQuery.Where(
-                department => department.Name.Contains(keyword)
-            );
+            departmentQuery = departmentQuery.Where(department => department.Name.Contains(keyword));
         }
 
         if (query.IsMaintenanceTeam.HasValue)
         {
             departmentQuery = departmentQuery.Where(
-                department => department.IsMaintenanceTeam == query.IsMaintenanceTeam.Value
-            );
+                department => department.IsMaintenanceTeam == query.IsMaintenanceTeam.Value);
         }
 
         var totalItems = await departmentQuery.CountAsync();
 
         departmentQuery = departmentQuery
-        .OrderByDescending(department => department.CreatedAt)
-        .ThenBy(department => department.Id);
+            .OrderByDescending(department => department.CreatedAt)
+            .ThenBy(department => department.Id);
 
         departmentQuery = departmentQuery.ApplyPaging(query);
 
-
         var departments = await departmentQuery
-        .Select(department => new DepartmentResponse
-        {
-            Id = department.Id,
-            Name = department.Name,
-            Description = department.Description,
-            IsMaintenanceTeam = department.IsMaintenanceTeam,
-            CreatedAt = department.CreatedAt
+            .Select(department => new DepartmentResponse
+            {
+                Id = department.Id,
+                Name = department.Name,
+                Description = department.Description,
+                IsMaintenanceTeam = department.IsMaintenanceTeam,
+                CreatedAt = department.CreatedAt
+            })
+            .ToListAsync();
 
-        }).ToListAsync();
         return Ok(departments.ToPagedResponse(query, totalItems));
     }
 
@@ -71,20 +68,19 @@ public class DepartmentsController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<ActionResult<DepartmentResponse>> GetDepartmentById(int id)
     {
-        //Where = lọc dữ liệu
-        // Select = chọn dữ liệu muốn trả về
-        // FirstOrDefaultAsync = lấy 1 dòng đầu tiên hoặc null
+        // Lay 1 department theo Id, neu khong co thi tra ve 404.
         var department = await _context.Departments
-        .Where(department => department.Id == id)
-        .Select(department => new DepartmentResponse
-        {
-            Id = department.Id,
-            Name = department.Name,
-            Description = department.Description,
-            IsMaintenanceTeam = department.IsMaintenanceTeam,
-            CreatedAt = department.CreatedAt
-        })
-        .FirstOrDefaultAsync();
+            .Where(department => department.Id == id)
+            .Select(department => new DepartmentResponse
+            {
+                Id = department.Id,
+                Name = department.Name,
+                Description = department.Description,
+                IsMaintenanceTeam = department.IsMaintenanceTeam,
+                CreatedAt = department.CreatedAt
+            })
+            .FirstOrDefaultAsync();
+
         if (department is null)
         {
             return NotFound(new
@@ -92,6 +88,7 @@ public class DepartmentsController : ControllerBase
                 message = "Department not found"
             });
         }
+
         return Ok(department);
     }
 
@@ -99,9 +96,8 @@ public class DepartmentsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<DepartmentResponse>> CreateDepartment(CreateDepartmentRequest request)
     {
-        // Kiểm tra Tên phòng ban có tồn tại hay không 
+        // Kiem tra ten phong ban da ton tai chua.
         var normalizedName = request.Name.Trim();
-
         var isDuplicate = await _context.Departments.AnyAsync(d => d.Name == normalizedName);
 
         if (isDuplicate)
@@ -118,9 +114,8 @@ public class DepartmentsController : ControllerBase
             Description = request.Description?.Trim(),
             IsMaintenanceTeam = request.IsMaintenanceTeam
         };
+
         _context.Departments.Add(department);
-        //Lưu thay đổi xuống Database
-        // Sau khi lưu , database sẽ sinh Id cho department
         await _context.SaveChangesAsync();
 
         var response = new DepartmentResponse
@@ -131,51 +126,45 @@ public class DepartmentsController : ControllerBase
             IsMaintenanceTeam = department.IsMaintenanceTeam,
             CreatedAt = department.CreatedAt
         };
-        //Sau khi tạo xong department, Api sẽ chỉ client biết có thể lấy department vừa tạo bằng action GetDepartmentById.
+
         return CreatedAtAction(
             nameof(GetDepartmentById),
             new { id = department.Id },
-            response
-        );
+            response);
     }
 
     [Authorize(Roles = UserRoles.Admin)]
     [HttpPut("{id:int}")]
     public async Task<ActionResult<DepartmentResponse>> UpdateDepartment(int id, UpdateDepartmentRequest request)
     {
-        // 1. Lấy department có Id = 2 trong database
-        // 2. Nếu không có → trả 404 Not Found
-        // 3. Nếu có → sửa Name, Description
-        // 4. SaveChangesAsync()
-        // 5. Trả về department sau khi update
+        // Lay department can cap nhat, neu khong co thi tra 404.
         var department = await _context.Departments
-        .FirstOrDefaultAsync(d => d.Id == id);
+            .FirstOrDefaultAsync(d => d.Id == id);
 
         if (department is null)
         {
-            return NotFound(
-                new
-                {
-                    message = "Department not found"
-                }
-            );
+            return NotFound(new
+            {
+                message = "Department not found"
+            });
         }
 
-        // Kiểm tra Tên phòng ban có tồn tại hay không 
+        // Kiem tra ten phong ban co bi trung voi phong ban khac hay khong.
         var normalizedName = request.Name.Trim();
-        var isDuplicate = await _context.Departments.AnyAsync(d => d.Name == normalizedName);
+        var isDuplicate = await _context.Departments.AnyAsync(d => d.Id != id && d.Name == normalizedName);
+
         if (isDuplicate)
         {
-            return BadRequest(
-                new
-                {
-                    message = "Department name already exists"
-                }
-            );
+            return BadRequest(new
+            {
+                message = "Department name already exists"
+            });
         }
+
         department.Name = normalizedName;
         department.Description = request.Description?.Trim();
         department.IsMaintenanceTeam = request.IsMaintenanceTeam;
+
         await _context.SaveChangesAsync();
 
         var response = new DepartmentResponse
@@ -189,6 +178,7 @@ public class DepartmentsController : ControllerBase
 
         return Ok(response);
     }
+
     [Authorize(Roles = UserRoles.Admin)]
     [HttpDelete("{id:int}")]
     public async Task<ActionResult<Department>> DeleteDepartment(int id)
@@ -197,34 +187,34 @@ public class DepartmentsController : ControllerBase
 
         if (department is null)
         {
-            return NotFound(
-                new
-                {
-                    message = "Department not found"
-                }
-            );
+            return NotFound(new
+            {
+                message = "Department not found"
+            });
         }
 
-        //Kiểm tra phòng ban nào có User đang thuộc về hay không 
+        // Kiem tra phong ban co user dang thuoc ve hay khong.
         var hasUsers = await _context.Users.AnyAsync(user => user.DepartmentId == id);
-        //Kiểm tra phòng ban nào có Thiết bị nào đang thuộc về không
+
+        // Kiem tra phong ban co thiet bi nao dang thuoc ve hay khong.
         var hasEquipment = await _context.Equipment.AnyAsync(equipment => equipment.DepartmentId == id);
 
-        // Nếu còn dữ liệu liên quan thì không cho xóa 
-        if (hasUsers || hasEquipment)
+        // Kiem tra phong ban co bi thiet bi nao dung lam team bao tri hay khong.
+        var hasMaintenanceEquipment = await _context.Equipment.AnyAsync(
+            equipment => equipment.MaintenanceDepartmentId == id);
+
+        // Neu con du lieu lien quan thi khong cho xoa.
+        if (hasUsers || hasEquipment || hasMaintenanceEquipment)
         {
-            return BadRequest(
-                new
-                {
-                    message = "Cannot delete department because it has related users or equipment"
-                }
-            );
+            return BadRequest(new
+            {
+                message = "Cannot delete department because it has related users or equipment"
+            });
         }
 
         _context.Departments.Remove(department);
         await _context.SaveChangesAsync();
 
         return NoContent();
-
     }
 }

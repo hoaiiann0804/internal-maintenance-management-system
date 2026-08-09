@@ -24,7 +24,8 @@ public static class ServiceCollectionExtensions
         var connectionString = configuration.GetConnectionString("DefaultConnection");
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            throw new InvalidOperationException("Missing connection string: ConnectionStrings__DefaultConnection");
+            throw new InvalidOperationException(
+                "Missing connection string: ConnectionStrings:DefaultConnection (or environment variable ConnectionStrings__DefaultConnection)");
         }
 
         services.AddDbContext<AppDbContext>(options =>

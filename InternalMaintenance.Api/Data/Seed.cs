@@ -39,30 +39,34 @@ public static class SeedData
 
     private static async Task SeedDepartmentsAsync(AppDbContext context)
     {
-        await EnsureDepartmentAsync(context, "IT", "Information Technology Department");
-        await EnsureDepartmentAsync(context, "Accounting", "Accounting Department");
-        await EnsureDepartmentAsync(context, "HR", "Human Resources Department");
+        await EnsureDepartmentAsync(context, "IT", "Information Technology Department", true);
+        await EnsureDepartmentAsync(context, "Accounting", "Accounting Department", false);
+        await EnsureDepartmentAsync(context, "HR", "Human Resources Department", false);
         await context.SaveChangesAsync();
     }
 
     private static async Task EnsureDepartmentAsync(
         AppDbContext context,
         string name,
-        string description)
+        string description,
+        bool isMaintenanceTeam)
     {
-        var exists = await context.Departments
-            .AnyAsync(department => department.Name == name);
+        var department = await context.Departments
+            .FirstOrDefaultAsync(department => department.Name == name);
 
-        if (exists)
+        if (department is null)
         {
+            context.Departments.Add(new Department
+            {
+                Name = name,
+                Description = description,
+                IsMaintenanceTeam = isMaintenanceTeam
+            });
             return;
         }
 
-        context.Departments.Add(new Department
-        {
-            Name = name,
-            Description = description
-        });
+        department.Description = description;
+        department.IsMaintenanceTeam = isMaintenanceTeam;
     }
 
     private static async Task SeedEquipmentAsync(AppDbContext context)
@@ -75,6 +79,7 @@ public static class SeedData
             code: "PRN-ACC-001",
             name: "Canon Printer - Accounting Room",
             departmentId: accountingDepartment.Id,
+            maintenanceDepartmentId: itDepartment.Id,
             purchasedDate: new DateTime(2025, 1, 10),
             description: "Main printer used by accounting department");
 
@@ -83,6 +88,7 @@ public static class SeedData
             code: "RTR-IT-001",
             name: "Main Office Router",
             departmentId: itDepartment.Id,
+            maintenanceDepartmentId: itDepartment.Id,
             purchasedDate: new DateTime(2024, 8, 15),
             description: "Router used for internal office network");
 
@@ -94,26 +100,32 @@ public static class SeedData
         string code,
         string name,
         int departmentId,
+        int? maintenanceDepartmentId,
         DateTime purchasedDate,
         string description)
     {
-        var exists = await context.Equipment
-            .AnyAsync(equipment => equipment.Code == code);
+        var equipment = await context.Equipment
+            .FirstOrDefaultAsync(equipment => equipment.Code == code);
 
-        if (exists)
+        if (equipment is null)
         {
+            context.Equipment.Add(new Equipment
+            {
+                Code = code,
+                Name = name,
+                DepartmentId = departmentId,
+                MaintenanceDepartmentId = maintenanceDepartmentId,
+                Status = "Active",
+                PurchasedDate = purchasedDate,
+                Description = description
+            });
             return;
         }
 
-        context.Equipment.Add(new Equipment
-        {
-            Code = code,
-            Name = name,
-            DepartmentId = departmentId,
-            Status = "Active",
-            PurchasedDate = purchasedDate,
-            Description = description
-        });
+        equipment.DepartmentId = departmentId;
+        equipment.MaintenanceDepartmentId = maintenanceDepartmentId ?? equipment.MaintenanceDepartmentId;
+        equipment.PurchasedDate = purchasedDate;
+        equipment.Description = description;
     }
 
     public static async Task SeedAuthUsersAsync(AppDbContext context)

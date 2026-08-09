@@ -29,6 +29,23 @@ export function EditTicketModal({ ticket, isOpen, onClose }: Props) {
   const [description, setDescription] = useState(ticket?.description ?? "");
   const [priority, setPriority] = useState<TicketPriority>(ticket?.priority ?? "Medium");
 
+  const [prevTicket, setPrevTicket] = useState(ticket);
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+
+  if (ticket !== prevTicket || isOpen !== prevIsOpen) {
+    setPrevTicket(ticket);
+    setPrevIsOpen(isOpen);
+    if (ticket && isOpen) {
+      setTitle(ticket.title ?? "");
+      setDescription(ticket.description ?? "");
+      setPriority(ticket.priority ?? "Medium");
+    } else if (!isOpen) {
+      setTitle("");
+      setDescription("");
+      setPriority("Medium");
+    }
+  }
+
   const updateTicketMutation = useUpdateTicketMutation(ticket?.id ?? null);
 
   if (!ticket) return null;

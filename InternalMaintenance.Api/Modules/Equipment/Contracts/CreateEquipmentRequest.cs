@@ -1,4 +1,3 @@
-
 using System.ComponentModel.DataAnnotations;
 
 namespace InternalMaintenance.Api.Modules.Equipment.Contracts;
@@ -13,7 +12,7 @@ public class CreateEquipmentRequest
     [StringLength(150, MinimumLength = 2, ErrorMessage = "Equipment name must be between 2 and 150 characters")]
     public string Name { get; set; } = string.Empty;
 
-    // Bắt buộc DeparmemtId > 0 tránh giá trị mặc định là (0) gây ra lỗi khóa ngoại ở DB
+    // DepartmentId phai lon hon 0 de tranh gia tri mac dinh 0 gay loi khoa ngoai trong DB.
     [Range(1, int.MaxValue, ErrorMessage = "DepartmentId must be greater than 0")]
     public int DepartmentId { get; set; }
 
@@ -25,5 +24,6 @@ public class CreateEquipmentRequest
     [StringLength(500, ErrorMessage = "Description must not exceed 500 characters")]
     public string? Description { get; set; }
 
+    // Null = khong chi dinh team bao tri rieng; backend co the fallback theo phong ban chu so huu neu can.
     public int? MaintenanceDepartmentId { get; set; }
 }

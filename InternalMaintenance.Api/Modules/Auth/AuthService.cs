@@ -255,6 +255,8 @@ public class AuthService : IAuthService
             RoleName = user.Role!.Name,
             DepartmentId = user.DepartmentId,
             DepartmentName = user.Department?.Name,
+            // Kiểm tra user biết phòng của mình có phải là phònhg bảo trì hay không
+            DepartmentIsMaintenanceTeam = user.Department?.IsMaintenanceTeam ?? false,
             IsActive = user.IsActive,
             MustChangePassword = user.MustChangePassword
         };

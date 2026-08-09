@@ -5,7 +5,7 @@ import { assignTicket } from "../../../shared/api/tickets";
 import type { AssignTicketRequest } from "../../../entities/ticket/model/types";
 
 function isAuthError(error: unknown) {
-  return axios.isAxiosError(error) && [401, 403].includes(error.response?.status ?? 0);
+  return axios.isAxiosError(error) && error.response?.status === 401;
 }
 
 export function useAssignTicketMutation(ticketId: number | null) {
