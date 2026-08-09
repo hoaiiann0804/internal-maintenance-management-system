@@ -151,8 +151,6 @@ public class MaintenanceTicketsController : ControllerBase
                 ClosedAt = ticket.ClosedAt,
                 DueAt = ticket.DueAt,
                 SlaStatus = ticket.SlaStatus
-
-                ClosedAt = ticket.ClosedAt
             }
         ).ToListAsync();
         return Ok(tickets.ToPagedResponse(query, totalItems));
@@ -199,7 +197,6 @@ public class MaintenanceTicketsController : ControllerBase
                 ClosedAt = ticket.ClosedAt,
                 DueAt = ticket.DueAt,
                 SlaStatus = ticket.SlaStatus
-                ClosedAt = ticket.ClosedAt
 
             }
         ).FirstOrDefaultAsync();
@@ -319,7 +316,6 @@ public class MaintenanceTicketsController : ControllerBase
             CreatedAt = DateTime.UtcNow,
             DueAt = SlaPolicy.CalculateDueAt(DateTime.UtcNow, priority),
             SlaStatus = SlaPolicy.InSLA
-            CreatedAt = DateTime.UtcNow
         };
 
         _context.MaintenanceTickets.Add(ticket);

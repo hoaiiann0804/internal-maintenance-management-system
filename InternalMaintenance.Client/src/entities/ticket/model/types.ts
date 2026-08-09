@@ -32,7 +32,6 @@ export interface MaintenanceTicket {
   slaStatus?: SlaStatus | null;
 
   cancellationReason?: string | null;
-
 }
 
 export interface MaintenanceTicketDetail extends MaintenanceTicket {
