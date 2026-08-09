@@ -393,6 +393,18 @@ export function TicketsPage() {
                     </div>
                   )}
 
+                  {/* Cancellation reason if any */}
+                  {selectedTicket.cancellationReason && (
+                    <div className="space-y-1.5 p-3 rounded-xl border bg-destructive/5 border-destructive/20 text-xs">
+                      <Label className="font-semibold text-destructive">
+                        Lý do hủy ticket
+                      </Label>
+                      <p className="text-foreground leading-relaxed">
+                        {selectedTicket.cancellationReason}
+                      </p>
+                    </div>
+                  )}
+
                   {/* History audit log */}
                   {selectedTicket.history && selectedTicket.history.length > 0 && (
                     <div className="space-y-2 pt-2 border-t">
