@@ -130,7 +130,8 @@ export function CreateTicketModal({ isOpen, onClose }: { isOpen: boolean; onClos
               ))}
             </select>
             <p className="text-[11px] text-muted-foreground">
-              Self-managed equipment is hidden here because it should not create maintenance tickets.
+              Self-managed equipment is hidden here because it should not create maintenance
+              tickets.
             </p>
           </div>
 

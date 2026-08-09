@@ -20,7 +20,8 @@ export const http = axios.create({
    ========================================================================== */
 http.interceptors.request.use((config) => {
   // Lấy session mới nhất từ Zustand store (hoặc fallback từ LocalStorage)
-  const currentSession = useAuthStore.getState().session ?? loadLocalStorage<AuthSession | null>(null) ?? session;
+  const currentSession =
+    useAuthStore.getState().session ?? loadLocalStorage<AuthSession | null>(null) ?? session;
   const token = currentSession?.accessToken;
 
   // Nếu đã đăng nhập và có token, tự động gắn vào Header: Authorization: Bearer <token>
@@ -74,7 +75,7 @@ http.interceptors.response.use(
 
   // Trường hợp Request gặp lỗi -> Bắt lỗi và kiểm tra xem có cần Refresh Token không
   async (error) => {
-    const originalRequest = error.config as (typeof error.config & CustomAxiosRequestConfig);
+    const originalRequest = error.config as typeof error.config & CustomAxiosRequestConfig;
 
     // BƯỚC 1: Nếu không phải lỗi 401 Unauthorized (ví dụ 400, 403, 500) -> Ném lỗi ra cho UI xử lý
     if (!error.response || error.response.status !== 401) {
@@ -115,10 +116,11 @@ http.interceptors.response.use(
 
     // BƯỚC 4: Request 401 ĐẦU TIÊN vươn tới đây -> Khóa Lock và chuẩn bị gọi API gia hạn token
     originalRequest._retry = true; // Đánh dấu request này bắt đầu retry
-    isRefreshing = true;          // Khóa cờ để các request 401 khác phải vào hàng chờ (BƯỚC 3)
+    isRefreshing = true; // Khóa cờ để các request 401 khác phải vào hàng chờ (BƯỚC 3)
 
     // BƯỚC 5: Kiểm tra RefreshToken lưu trong Client
-    const currentSession = useAuthStore.getState().session ?? loadLocalStorage<AuthSession | null>(null);
+    const currentSession =
+      useAuthStore.getState().session ?? loadLocalStorage<AuthSession | null>(null);
     const refreshTokenStr = currentSession?.refreshToken;
 
     // Nếu không tìm thấy RefreshToken -> Đăng xuất và báo lỗi
@@ -133,7 +135,7 @@ http.interceptors.response.use(
       // Dùng axios thuần để gọi API refresh (tránh lặp interceptor)
       const { data } = await axios.post<RefreshTokenResponse>(
         `${env.apiBaseUrl}/auth/refresh-token`,
-        { refreshToken: refreshTokenStr }
+        { refreshToken: refreshTokenStr },
       );
 
       // BƯỚC 7: Cập nhật Cặp Token mới vào Store & LocalStorage
@@ -152,16 +154,14 @@ http.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
       }
       return http(originalRequest);
-
     } catch (refreshError) {
       // BƯỚC 10: Nếu API Refresh Token bị thất bại (ví dụ: Refresh Token hết hạn 7 ngày)
-      processQueue(refreshError, null);   // Hủy tất cả request đang chờ
-      useAuthStore.getState().signOut();  // Xóa session, đẩy về trang Login
+      processQueue(refreshError, null); // Hủy tất cả request đang chờ
+      useAuthStore.getState().signOut(); // Xóa session, đẩy về trang Login
       return Promise.reject(refreshError);
-
     } finally {
       // BƯỚC 11: Mở khóa Lock để chuẩn bị cho các đợt hết hạn token tiếp theo
       isRefreshing = false;
     }
-  }
+  },
 );
