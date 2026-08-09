@@ -396,9 +396,7 @@ export function TicketsPage() {
                   {/* Cancellation reason if any */}
                   {selectedTicket.cancellationReason && (
                     <div className="space-y-1.5 p-3 rounded-xl border bg-destructive/5 border-destructive/20 text-xs">
-                      <Label className="font-semibold text-destructive">
-                        Lý do hủy ticket
-                      </Label>
+                      <Label className="font-semibold text-destructive">Lý do hủy ticket</Label>
                       <p className="text-foreground leading-relaxed">
                         {selectedTicket.cancellationReason}
                       </p>

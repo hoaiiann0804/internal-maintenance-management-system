@@ -139,14 +139,14 @@ export function TicketActionPanel({ ticket }: Props) {
   ];
 
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
-  const [cancelReasonPreset, setCancelReasonPreset] = useState<string>(PREDEFINED_CANCEL_REASONS[0]);
+  const [cancelReasonPreset, setCancelReasonPreset] = useState<string>(
+    PREDEFINED_CANCEL_REASONS[0],
+  );
   const [customCancelReason, setCustomCancelReason] = useState<string>("");
 
   const handleConfirmCancel = async () => {
     const finalReason =
-      cancelReasonPreset === "Lý do khác"
-        ? customCancelReason.trim()
-        : cancelReasonPreset;
+      cancelReasonPreset === "Lý do khác" ? customCancelReason.trim() : cancelReasonPreset;
 
     if (!finalReason) {
       toast.error("Vui lòng chọn hoặc nhập lý do hủy ticket.");
@@ -446,7 +446,9 @@ export function TicketActionPanel({ ticket }: Props) {
 
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label className="text-xs font-medium">Lý do hủy ticket <span className="text-destructive">*</span></Label>
+              <Label className="text-xs font-medium">
+                Lý do hủy ticket <span className="text-destructive">*</span>
+              </Label>
               <select
                 className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={cancelReasonPreset}
@@ -462,7 +464,9 @@ export function TicketActionPanel({ ticket }: Props) {
 
             {cancelReasonPreset === "Lý do khác" && (
               <div className="space-y-2">
-                <Label className="text-xs font-medium">Chi tiết lý do hủy khác <span className="text-destructive">*</span></Label>
+                <Label className="text-xs font-medium">
+                  Chi tiết lý do hủy khác <span className="text-destructive">*</span>
+                </Label>
                 <Textarea
                   rows={3}
                   value={customCancelReason}
