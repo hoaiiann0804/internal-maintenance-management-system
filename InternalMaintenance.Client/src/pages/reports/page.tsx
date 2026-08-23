@@ -185,7 +185,11 @@ export function ReportsPage() {
               <button
                 key={p.id}
                 type="button"
-                onClick={() => handlePresetChange(p.id as any)}
+                onClick={() =>
+                  handlePresetChange(
+                    p.id as "all" | "thisMonth" | "lastMonth" | "thisQuarter" | "thisYear",
+                  )
+                }
                 className={`px-2.5 py-1 rounded-md transition-colors ${
                   datePreset === p.id
                     ? "bg-primary text-primary-foreground font-semibold"
@@ -388,7 +392,7 @@ export function ReportsPage() {
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                     <XAxis dataKey="fullName" tick={{ fontSize: 11 }} />
                     <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
-                    <Tooltip formatter={(val: any) => [`${val}%`, "Tỷ Lệ Đạt SLA"]} />
+                    <Tooltip formatter={(val: number) => [`${val}%`, "Tỷ Lệ Đạt SLA"]} />
                     <Bar
                       dataKey="slaComplianceRate"
                       name="Tỷ Lệ Đạt SLA (%)"
@@ -566,7 +570,7 @@ export function ReportsPage() {
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                       <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                       <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
-                      <Tooltip formatter={(val: any) => [`${val}%`, "Tỷ lệ đạt SLA"]} />
+                      <Tooltip formatter={(val: number) => [`${val}%`, "Tỷ lệ đạt SLA"]} />
                       <Line
                         type="monotone"
                         dataKey="complianceRate"
@@ -599,7 +603,7 @@ export function ReportsPage() {
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                       <XAxis dataKey="priority" tick={{ fontSize: 11 }} />
                       <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
-                      <Tooltip formatter={(val: any) => [`${val}%`, "Tỷ lệ đạt"]} />
+                      <Tooltip formatter={(val: number) => [`${val}%`, "Tỷ lệ đạt"]} />
                       <Bar
                         dataKey="complianceRate"
                         name="Tỷ lệ Đạt SLA (%)"
@@ -677,7 +681,7 @@ export function ReportsPage() {
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                       <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 11 }} tickFormatter={(val) => `${val / 1000000}M`} />
-                      <Tooltip formatter={(val: any) => [formatVND(Number(val)), "Chi phí"]} />
+                      <Tooltip formatter={(val: number) => [formatVND(Number(val)), "Chi phí"]} />
                       <Bar
                         dataKey="totalCost"
                         name="Chi phí (VNĐ)"
@@ -711,7 +715,7 @@ export function ReportsPage() {
                         cx="50%"
                         cy="50%"
                         outerRadius={80}
-                        label={(entry: any) =>
+                        label={(entry: { departmentName: string; totalCost: number }) =>
                           `${entry.departmentName}: ${Math.round(entry.totalCost / 1000000)}M`
                         }
                       >
@@ -719,7 +723,7 @@ export function ReportsPage() {
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(val: any) => [formatVND(Number(val)), "Chi phí"]} />
+                      <Tooltip formatter={(val: number) => [formatVND(Number(val)), "Chi phí"]} />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (

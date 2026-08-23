@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import axios from "axios";
 import type { Vendor } from "@/entities/vendor/model/types";
@@ -33,7 +33,12 @@ export function VendorModal({ vendor, isOpen, onClose }: Props) {
   const [address, setAddress] = useState("");
   const [isActive, setIsActive] = useState(true);
 
-  useEffect(() => {
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  const [prevVendorId, setPrevVendorId] = useState(vendor?.id);
+
+  if (isOpen !== prevIsOpen || vendor?.id !== prevVendorId) {
+    setPrevIsOpen(isOpen);
+    setPrevVendorId(vendor?.id);
     if (vendor) {
       setName(vendor.name);
       setContactPerson(vendor.contactPerson ?? "");
@@ -49,7 +54,7 @@ export function VendorModal({ vendor, isOpen, onClose }: Props) {
       setAddress("");
       setIsActive(true);
     }
-  }, [vendor, isOpen]);
+  }
 
   const createMutation = useCreateVendorMutation();
   const updateMutation = useUpdateVendorMutation();
