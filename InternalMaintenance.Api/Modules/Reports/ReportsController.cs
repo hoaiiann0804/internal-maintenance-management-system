@@ -48,6 +48,22 @@ public class ReportsController : ControllerBase
         return query.Where(_ => false);
     }
 
+    private IQueryable<User> ApplyTechnicianScope(IQueryable<User> query)
+    {
+        var role = _currentUserService.Role;
+        var deptId = _currentUserService.DepartmentId;
+
+        if (role == UserRoles.Admin)
+            return query;
+
+        if (role == UserRoles.Manager && deptId.HasValue)
+        {
+            return query.Where(u => u.DepartmentId == deptId.Value);
+        }
+
+        return query.Where(_ => false);
+    }
+
     private string? ValidateDateRange(ReportFilterQuery filter)
     {
         if (filter.FromDate.HasValue && filter.FromDate.Value.Date > DateTime.UtcNow.Date)
@@ -88,14 +104,22 @@ public class ReportsController : ControllerBase
             .Where(t => t.AssignedTechnicianId.HasValue)
             .ToListAsync();
 
-        var techUsers = await _context.Users
+        var techQuery = _context.Users
             .Include(u => u.Role)
             .Include(u => u.Department)
             .Where(u => u.Role != null && u.Role.Name == UserRoles.Technician)
-            .ToListAsync();
+            .AsNoTracking()
+            .AsQueryable();
+
+        techQuery = ApplyTechnicianScope(techQuery);
+
+        if (filter.DepartmentId.HasValue)
+            techQuery = techQuery.Where(u => u.DepartmentId == filter.DepartmentId.Value);
 
         if (filter.TechnicianId.HasValue)
-            techUsers = techUsers.Where(u => u.Id == filter.TechnicianId.Value).ToList();
+            techQuery = techQuery.Where(u => u.Id == filter.TechnicianId.Value);
+
+        var techUsers = await techQuery.ToListAsync();
 
         var result = techUsers.Select(tech =>
         {
@@ -247,6 +271,16 @@ public class ReportsController : ControllerBase
             .AsNoTracking()
             .AsQueryable();
 
+        var role = _currentUserService.Role;
+        var deptId = _currentUserService.DepartmentId;
+
+        if (role == UserRoles.Manager && deptId.HasValue)
+        {
+            logQuery = logQuery.Where(l => 
+                l.MaintenanceTicket!.Equipment!.DepartmentId == deptId.Value || 
+                l.MaintenanceTicket!.Equipment!.MaintenanceDepartmentId == deptId.Value);
+        }
+
         if (filter.FromDate.HasValue)
             logQuery = logQuery.Where(l => l.DispatchedAt >= filter.FromDate.Value);
 
@@ -254,7 +288,7 @@ public class ReportsController : ControllerBase
             logQuery = logQuery.Where(l => l.DispatchedAt <= filter.ToDate.Value);
 
         if (filter.DepartmentId.HasValue)
-            logQuery = logQuery.Where(l => l.MaintenanceTicket!.Equipment!.DepartmentId == filter.DepartmentId.Value);
+            logQuery = logQuery.Where(l => l.MaintenanceTicket!.Equipment!.DepartmentId == filter.DepartmentId.Value || l.MaintenanceTicket!.Equipment!.MaintenanceDepartmentId == filter.DepartmentId.Value);
 
         var logs = await logQuery.ToListAsync();
 
@@ -280,7 +314,13 @@ public class ReportsController : ControllerBase
         }
 
         // Department breakdown
-        var depts = await _context.Departments.AsNoTracking().ToListAsync();
+        var deptQuery = _context.Departments.AsNoTracking().AsQueryable();
+        if (role == UserRoles.Manager && deptId.HasValue)
+        {
+            deptQuery = deptQuery.Where(d => d.Id == deptId.Value);
+        }
+        var depts = await deptQuery.ToListAsync();
+
         var deptCosts = depts.Select(d =>
         {
             var dLogs = logs.Where(l => l.MaintenanceTicket?.Equipment?.DepartmentId == d.Id).ToList();
@@ -314,10 +354,17 @@ public class ReportsController : ControllerBase
         .ToList();
 
         // Top Costly Equipment
-        var equipmentList = await _context.Equipment
+        var equipQuery = _context.Equipment
             .Include(e => e.Department)
             .AsNoTracking()
-            .ToListAsync();
+            .AsQueryable();
+
+        if (role == UserRoles.Manager && deptId.HasValue)
+        {
+            equipQuery = equipQuery.Where(e => e.DepartmentId == deptId.Value || e.MaintenanceDepartmentId == deptId.Value);
+        }
+
+        var equipmentList = await equipQuery.ToListAsync();
 
         var costlyEquipment = equipmentList.Select(e =>
         {
