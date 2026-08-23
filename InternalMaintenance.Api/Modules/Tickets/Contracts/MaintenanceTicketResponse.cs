@@ -32,4 +32,9 @@ public class MaintenanceTicketResponse
 
     public DateTime? DueAt { get; set; }
     public string? SlaStatus { get; set; }
+
+    public DateTime? SlaPausedAt { get; set; }
+    public int TotalSlaPausedMinutes { get; set; }
+
+    public List<TicketVendorLogResponse> VendorLogs { get; set; } = new();
 }

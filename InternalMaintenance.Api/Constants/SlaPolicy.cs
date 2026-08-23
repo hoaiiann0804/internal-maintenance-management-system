@@ -17,6 +17,7 @@ public static class SlaPolicy
     public const string Breached = "Breached";
     public const string MetSLA = "MetSLA";
     public const string MissedSLA = "MissedSLA";
+    public const string Paused = "Paused";
 
     /// <summary>
     /// Tính thời hạn xử lý (DueAt) dựa trên thời gian tạo và mức độ ưu tiên.

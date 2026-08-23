@@ -1,3 +1,5 @@
+using InternalMaintenance.Api.Modules.Tickets;
+
 namespace InternalMaintenance.Api.Models;
 
 // MaintenanceTicket = phieu bao loi / yeu cau bao tri.
@@ -46,7 +48,12 @@ public class MaintenanceTicket
     // Thời điểm đã gửi cảnh báo leo thang
     public DateTime? EscalatedNotifiedAt { get; set; }
 
+    // Thông tin tạm dừng SLA khi gửi Vendor
+    public DateTime? SlaPausedAt { get; set; }
+    public int TotalSlaPausedMinutes { get; set; }
+
     public ICollection<TicketStatusHistory> StatusHistories { get; set; } = new List<TicketStatusHistory>();
     public ICollection<TicketComment> Comments { get; set; } = new List<TicketComment>();
     public ICollection<TicketAttachment> Attachments { get; set; } = new List<TicketAttachment>();
+    public ICollection<TicketVendorLog> VendorLogs { get; set; } = new List<TicketVendorLog>();
 }

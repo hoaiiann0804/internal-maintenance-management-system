@@ -6,7 +6,7 @@ import { logout } from "@/shared/api/auth";
 import { UserProfile, ThemeToggle } from "@/shared/ui";
 import { useState } from "react";
 import { ChangePasswordModal } from "@/features/auth/components/change-password-modal";
-import { LayoutDashboard, Ticket, Wrench, Users, Building2 } from "lucide-react";
+import { LayoutDashboard, Ticket, Wrench, Users, Building2, Store, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function AppLayout() {
@@ -17,6 +17,7 @@ export function AppLayout() {
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   const isAdmin = session?.user.roleName === "Admin";
+  const isManagerOrAdmin = isAdmin || session?.user.roleName === "Manager";
   const isLoginPage = location.pathname === appRoutes.login || !session;
 
   const handleLogout = async (): Promise<void> => {
@@ -35,6 +36,8 @@ export function AppLayout() {
     { to: appRoutes.dashboard, label: "Dashboard", icon: LayoutDashboard },
     { to: appRoutes.tickets, label: "Tickets", icon: Ticket },
     { to: appRoutes.equipment, label: "Equipment", icon: Wrench },
+    ...(isManagerOrAdmin ? [{ to: appRoutes.vendors, label: "Vendors", icon: Store }] : []),
+    ...(isManagerOrAdmin ? [{ to: appRoutes.reports, label: "Reports", icon: BarChart3 }] : []),
     ...(isAdmin ? [{ to: appRoutes.users, label: "Users", icon: Users }] : []),
     ...(isAdmin ? [{ to: appRoutes.departments, label: "Departments", icon: Building2 }] : []),
   ];

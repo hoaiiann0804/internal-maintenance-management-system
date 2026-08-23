@@ -1,10 +1,10 @@
 import type { RoleName } from "../../auth/model/types";
 
 export type TicketStatus =
-  "Pending" | "Assigned" | "InProgress" | "Resolved" | "Closed" | "Cancelled";
+  "Pending" | "Assigned" | "InProgress" | "WaitingForVendor" | "Resolved" | "Closed" | "Cancelled";
 export type TicketPriority = "Low" | "Medium" | "High" | "Critical";
 export type EquipmentStatus = "Active" | "Inactive" | "UnderMaintenance" | "Retired";
-export type SlaStatus = "InSLA" | "NearBreach" | "Breached" | "MetSLA" | "MissedSLA";
+export type SlaStatus = "InSLA" | "NearBreach" | "Breached" | "MetSLA" | "MissedSLA" | "Paused";
 
 export interface MaintenanceTicket {
   id: number;
@@ -30,8 +30,26 @@ export interface MaintenanceTicket {
   closedAt: string | null;
   dueAt?: string | null;
   slaStatus?: SlaStatus | null;
+  slaPausedAt?: string | null;
+  totalSlaPausedMinutes?: number;
+
+  vendorLogs?: TicketVendorLog[];
 
   cancellationReason?: string | null;
+}
+
+export interface TicketVendorLog {
+  id: number;
+  maintenanceTicketId: number;
+  vendorId: number;
+  vendorName: string;
+  dispatchedAt: string;
+  estimatedReturnDate: string;
+  actualReturnDate?: string | null;
+  pausedMinutes: number;
+  repairCost?: number | null;
+  note?: string | null;
+  createdAt: string;
 }
 
 export interface MaintenanceTicketDetail extends MaintenanceTicket {
@@ -93,6 +111,9 @@ export interface ChangeTicketStatusRequest {
   resolutionNote?: string;
   cancellationReason?: string;
   note?: string;
+  vendorId?: number;
+  vendorEstimatedReturnDate?: string;
+  vendorNote?: string;
 }
 
 export interface CreateTicketCommentRequest {

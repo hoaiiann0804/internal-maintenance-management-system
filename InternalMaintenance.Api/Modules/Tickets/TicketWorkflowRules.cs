@@ -22,7 +22,8 @@ public static class TicketWorkflowRules
         TicketStatuses.Pending,
         TicketStatuses.Assigned,
         TicketStatuses.InProgress,
-        TicketStatuses.Resolved
+        TicketStatuses.Resolved,
+        TicketStatuses.WaitingForVendor
     };
 
     public static bool IsOpenTicketStatus(string status)
@@ -47,7 +48,10 @@ public static class TicketWorkflowRules
             (currentStatus == TicketStatuses.Pending && newStatus == TicketStatuses.Cancelled) ||
             (currentStatus == TicketStatuses.Assigned && newStatus == TicketStatuses.Cancelled) ||
             (currentStatus == TicketStatuses.Assigned && newStatus == TicketStatuses.InProgress) ||
+            (currentStatus == TicketStatuses.Assigned && newStatus == TicketStatuses.WaitingForVendor) ||
             (currentStatus == TicketStatuses.InProgress && newStatus == TicketStatuses.Resolved) ||
+            (currentStatus == TicketStatuses.InProgress && newStatus == TicketStatuses.WaitingForVendor) ||
+            (currentStatus == TicketStatuses.WaitingForVendor && newStatus == TicketStatuses.InProgress) ||
             (currentStatus == TicketStatuses.Resolved && newStatus == TicketStatuses.Closed);
     }
 }

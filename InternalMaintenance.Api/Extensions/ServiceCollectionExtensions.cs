@@ -86,6 +86,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<CurrentUserService>();
         services.AddScoped<ITicketCodeGenerator, TicketCodeGenerator>();
         services.AddScoped<IEmailService, SmtpEmailService>();
+        services.AddScoped<InternalMaintenance.Api.Modules.Reports.Services.ReportExportService>();
         services.AddHostedService<SlaMonitorWorker>();
 
         return services;

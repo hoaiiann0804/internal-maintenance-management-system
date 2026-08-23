@@ -31,7 +31,8 @@ public static class TicketAttachmentRules
         TicketStatuses.Pending,
         TicketStatuses.Assigned,
         TicketStatuses.InProgress,
-        TicketStatuses.Resolved
+        TicketStatuses.Resolved,
+        TicketStatuses.WaitingForVendor
     };
 
     public static bool IsUploadAllowedStatus(string status)

@@ -4,6 +4,7 @@ using InternalMaintenance.Api.Models;
 using InternalMaintenance.Api.Data;
 using InternalMaintenance.Api.Common.Pagination;
 using InternalMaintenance.Api.Modules.Equipment.Contracts;
+using InternalMaintenance.Api.Modules.Tickets;
 using InternalMaintenance.Api.Services;
 using EquipmentEntity = InternalMaintenance.Api.Models.Equipment;
 using Microsoft.AspNetCore.Authorization;
@@ -332,11 +333,7 @@ public class EquipmentController : ControllerBase
         // Vì retired ngưng sử dụng vĩch viễn, không thể tồn tại và đang cố xử lý 
         var hasOpenTicket = await _context.MaintenanceTickets
         .AnyAsync(ticket => ticket.EquipmentId == equipment.Id
-        && (
-            ticket.Status == TicketStatuses.Pending ||
-            ticket.Status == TicketStatuses.Assigned ||
-            ticket.Status == TicketStatuses.InProgress
-        ));
+        && TicketWorkflowRules.OpenStatuses.Contains(ticket.Status));
 
         if (request.Status == EquipmentStatuses.Retired && hasOpenTicket)
         {

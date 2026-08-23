@@ -24,4 +24,9 @@ public class ChangeTicketStatusRequest
 
     // Ghi chu cho lan doi trang thai nay, se luu vao TicketStatusHistory.Note.
     public string? Note { get; set; }
+
+    // Vendor Management (khi status = WaitingForVendor)
+    public int? VendorId { get; set; }
+    public DateTime? VendorEstimatedReturnDate { get; set; }
+    public string? VendorNote { get; set; }
 }

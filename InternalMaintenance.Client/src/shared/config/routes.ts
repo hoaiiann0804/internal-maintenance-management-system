@@ -5,4 +5,6 @@ export const appRoutes = {
   equipment: "/equipment",
   users: "/users",
   departments: "/departments",
+  vendors: "/vendors",
+  reports: "/reports",
 };
