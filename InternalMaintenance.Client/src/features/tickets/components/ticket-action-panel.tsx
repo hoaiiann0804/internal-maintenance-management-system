@@ -11,6 +11,7 @@ import { useCreateTicketCommentMutation } from "../api/use-create-ticket-comment
 import { useUsersQuery } from "../api/use-users-query";
 import { useTicketAttachmentsQuery } from "../api/use-ticket-attachments-query";
 import { useUploadAttachment } from "../api/use-upload-attachment";
+import { useVendors } from "../../../features/vendors/api/vendors-api";
 import { AttachmentUploadZone } from "./attachment-upload-zone";
 import { AttachmentList } from "./attachment-list";
 import { TicketCommentsList } from "./ticket-comments-list";
@@ -73,6 +74,11 @@ export function TicketActionPanel({ ticket }: Props) {
   const [statusNote, setStatusNote] = useState("");
   const [commentDraft, setCommentDraft] = useState("");
 
+  const [isVendorDialogOpen, setIsVendorDialogOpen] = useState(false);
+  const [vendorId, setVendorId] = useState("");
+  const [vendorReturnDate, setVendorReturnDate] = useState("");
+  const [vendorNote, setVendorNote] = useState("");
+
   const [prevTicket, setPrevTicket] = useState(ticket);
   if (ticket !== prevTicket) {
     setPrevTicket(ticket);
@@ -82,6 +88,9 @@ export function TicketActionPanel({ ticket }: Props) {
     setResolutionNote(ticket.resolutionNote ?? "");
     setStatusNote("");
     setCommentDraft("");
+    setVendorId("");
+    setVendorReturnDate("");
+    setVendorNote("");
   }
 
   const assignMutation = useAssignTicketMutation(ticket.id);
@@ -108,6 +117,8 @@ export function TicketActionPanel({ ticket }: Props) {
 
   const { data: techPage, isLoading: isTechLoading } = useUsersQuery(technicianQuery);
   const technicians = techPage?.items ?? [];
+
+  const { data: vendors, isLoading: isVendorsLoading } = useVendors(true);
 
   const isFinalized = ticket.status === "Closed" || ticket.status === "Cancelled";
   const isAssignedTech = ticket.assignedTechnicianId === userId;
@@ -173,14 +184,35 @@ export function TicketActionPanel({ ticket }: Props) {
       toast.error("Vui lòng điền ghi chú xử lý trước khi hoàn thành.");
       return;
     }
+
+    if (newStatus === "WaitingForVendor") {
+      if (!vendorId || !vendorReturnDate) {
+        toast.error("Vui lòng chọn đối tác và ngày dự kiến trả thiết bị.");
+        return;
+      }
+      const selectedDate = new Date(vendorReturnDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        toast.error("Ngày dự kiến trả thiết bị không được ở trong quá khứ.");
+        return;
+      }
+    }
+
     try {
       await statusMutation.mutateAsync({
-        status: newStatus as "InProgress" | "Resolved" | "Closed" | "Cancelled",
+        status: newStatus as
+          "InProgress" | "Resolved" | "Closed" | "Cancelled" | "WaitingForVendor",
         resolutionNote: requireResolution ? resolutionNote.trim() : undefined,
         note: statusNote.trim() || undefined,
+        vendorId: newStatus === "WaitingForVendor" ? Number(vendorId) : undefined,
+        vendorEstimatedReturnDate:
+          newStatus === "WaitingForVendor" ? new Date(vendorReturnDate).toISOString() : undefined,
+        vendorNote: newStatus === "WaitingForVendor" ? vendorNote.trim() : undefined,
       });
       toast.success(`Cập nhật trạng thái thành công: ${newStatus}`);
       setStatusNote("");
+      setIsVendorDialogOpen(false);
     } catch (e) {
       toastApiError(e, "Không thể cập nhật trạng thái.");
     }
@@ -324,29 +356,43 @@ export function TicketActionPanel({ ticket }: Props) {
             )}
 
             <div className="flex flex-wrap gap-2 pt-1">
-              {isAssignedTech && ticket.status === "Assigned" && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleStatus("InProgress")}
-                  disabled={isWorking}
-                >
-                  <Play className="h-4 w-4 mr-1 text-blue-500" />
-                  Bắt đầu xử lý
-                </Button>
-              )}
+              {isAssignedTech &&
+                (ticket.status === "Assigned" || ticket.status === "WaitingForVendor") && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStatus("InProgress")}
+                    disabled={isWorking}
+                  >
+                    <Play className="h-4 w-4 mr-1 text-blue-500" />
+                    {ticket.status === "WaitingForVendor"
+                      ? "Tiếp tục xử lý (Bỏ tạm dừng SLA)"
+                      : "Bắt đầu xử lý"}
+                  </Button>
+                )}
 
               {isAssignedTech && ticket.status === "InProgress" && (
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => handleStatus("Resolved", true)}
-                  disabled={isWorking}
-                >
-                  <CheckCircle className="h-4 w-4 mr-1 text-emerald-400" />
-                  Hoàn thành
-                </Button>
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsVendorDialogOpen(true)}
+                    disabled={isWorking}
+                  >
+                    Chuyển đơn vị ngoài
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => handleStatus("Resolved", true)}
+                    disabled={isWorking}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1 text-emerald-400" />
+                    Hoàn thành
+                  </Button>
+                </>
               )}
 
               {(isRequester || role === "Admin" || role === "Manager") &&
@@ -494,6 +540,84 @@ export function TicketActionPanel({ ticket }: Props) {
             >
               {statusMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               Xác nhận Hủy
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* ── VENDOR TICKET DIALOG ─────────────────────────────── */}
+      <Dialog open={isVendorDialogOpen} onOpenChange={setIsVendorDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span>Chuyển thiết bị cho đơn vị ngoài</span>
+            </DialogTitle>
+            <DialogDescription>
+              Thiết bị sẽ được chuyển cho đối tác sửa chữa, thời gian SLA sẽ được tạm dừng cho đến
+              khi thiết bị được trả về.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">
+                Đơn vị ngoài (Vendor) <span className="text-destructive">*</span>
+              </Label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                value={vendorId}
+                onChange={(e) => setVendorId(e.target.value)}
+              >
+                <option value="">
+                  {isVendorsLoading ? "Đang tải danh sách đối tác..." : "-- Chọn đơn vị ngoài --"}
+                </option>
+                {vendors?.map((v) => (
+                  <option key={v.id} value={v.id} className="bg-background text-foreground">
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">
+                Dự kiến ngày trả <span className="text-destructive">*</span>
+              </Label>
+              <input
+                type="date"
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                value={vendorReturnDate}
+                onChange={(e) => setVendorReturnDate(e.target.value)}
+                min={new Date().toISOString().split("T")[0]}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Ghi chú thêm</Label>
+              <Textarea
+                rows={3}
+                value={vendorNote}
+                onChange={(e) => setVendorNote(e.target.value)}
+                placeholder="Ghi chú về tình trạng thiết bị khi bàn giao..."
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsVendorDialogOpen(false)}
+              disabled={statusMutation.isPending}
+            >
+              Hủy bỏ
+            </Button>
+            <Button
+              type="button"
+              onClick={() => handleStatus("WaitingForVendor")}
+              disabled={statusMutation.isPending}
+            >
+              {statusMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Xác nhận chuyển
             </Button>
           </DialogFooter>
         </DialogContent>

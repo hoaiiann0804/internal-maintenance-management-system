@@ -14,4 +14,6 @@ public class TicketStatuses
     public const string Closed = "Closed";
 
     public const string Cancelled = "Cancelled";
+
+    public const string WaitingForVendor = "WaitingForVendor";
 }

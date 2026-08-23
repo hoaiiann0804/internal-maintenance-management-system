@@ -1,5 +1,6 @@
 using InternalMaintenance.Api.Constants;
 using InternalMaintenance.Api.Data;
+using InternalMaintenance.Api.Modules.Tickets;
 using InternalMaintenance.Api.Services.Interface;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,7 +35,8 @@ public class SlaMonitorWorker : BackgroundService
                 var now = DateTime.UtcNow;
                 var openTickets = await db.MaintenanceTickets
                     .Where(t => t.DueAt != null)
-                    .Where(t => new[] { TicketStatuses.Pending, TicketStatuses.Assigned, TicketStatuses.InProgress }.Contains(t.Status))
+                    .Where(t => TicketWorkflowRules.OpenStatuses.Contains(t.Status))
+                    .Where(t => t.Status != TicketStatuses.WaitingForVendor)
                     .ToListAsync(stoppingToken);
 
                 foreach (var ticket in openTickets)

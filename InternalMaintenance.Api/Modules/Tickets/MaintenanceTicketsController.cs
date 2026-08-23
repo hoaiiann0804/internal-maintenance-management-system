@@ -150,7 +150,23 @@ public class MaintenanceTicketsController : ControllerBase
 
                 ClosedAt = ticket.ClosedAt,
                 DueAt = ticket.DueAt,
-                SlaStatus = ticket.SlaStatus
+                SlaStatus = ticket.SlaStatus,
+                SlaPausedAt = ticket.SlaPausedAt,
+                TotalSlaPausedMinutes = ticket.TotalSlaPausedMinutes,
+                VendorLogs = ticket.VendorLogs.Select(vl => new TicketVendorLogResponse
+                {
+                    Id = vl.Id,
+                    MaintenanceTicketId = vl.MaintenanceTicketId,
+                    VendorId = vl.VendorId,
+                    VendorName = vl.Vendor!.Name,
+                    DispatchedAt = vl.DispatchedAt,
+                    EstimatedReturnDate = vl.EstimatedReturnDate,
+                    ActualReturnDate = vl.ActualReturnDate,
+                    PausedMinutes = vl.PausedMinutes,
+                    RepairCost = vl.RepairCost,
+                    Note = vl.Note,
+                    CreatedAt = vl.CreatedAt
+                }).ToList()
             }
         ).ToListAsync();
         return Ok(tickets.ToPagedResponse(query, totalItems));
@@ -196,8 +212,23 @@ public class MaintenanceTicketsController : ControllerBase
 
                 ClosedAt = ticket.ClosedAt,
                 DueAt = ticket.DueAt,
-                SlaStatus = ticket.SlaStatus
-
+                SlaStatus = ticket.SlaStatus,
+                SlaPausedAt = ticket.SlaPausedAt,
+                TotalSlaPausedMinutes = ticket.TotalSlaPausedMinutes,
+                VendorLogs = ticket.VendorLogs.Select(vl => new TicketVendorLogResponse
+                {
+                    Id = vl.Id,
+                    MaintenanceTicketId = vl.MaintenanceTicketId,
+                    VendorId = vl.VendorId,
+                    VendorName = vl.Vendor!.Name,
+                    DispatchedAt = vl.DispatchedAt,
+                    EstimatedReturnDate = vl.EstimatedReturnDate,
+                    ActualReturnDate = vl.ActualReturnDate,
+                    PausedMinutes = vl.PausedMinutes,
+                    RepairCost = vl.RepairCost,
+                    Note = vl.Note,
+                    CreatedAt = vl.CreatedAt
+                }).ToList()
             }
         ).FirstOrDefaultAsync();
 
@@ -347,7 +378,23 @@ public class MaintenanceTicketsController : ControllerBase
                 ResolvedAt = t.ResolvedAt,
                 ClosedAt = t.ClosedAt,
                 DueAt = t.DueAt,
-                SlaStatus = t.SlaStatus
+                SlaStatus = t.SlaStatus,
+                SlaPausedAt = t.SlaPausedAt,
+                TotalSlaPausedMinutes = t.TotalSlaPausedMinutes,
+                VendorLogs = t.VendorLogs.Select(vl => new TicketVendorLogResponse
+                {
+                    Id = vl.Id,
+                    MaintenanceTicketId = vl.MaintenanceTicketId,
+                    VendorId = vl.VendorId,
+                    VendorName = vl.Vendor!.Name,
+                    DispatchedAt = vl.DispatchedAt,
+                    EstimatedReturnDate = vl.EstimatedReturnDate,
+                    ActualReturnDate = vl.ActualReturnDate,
+                    PausedMinutes = vl.PausedMinutes,
+                    RepairCost = vl.RepairCost,
+                    Note = vl.Note,
+                    CreatedAt = vl.CreatedAt
+                }).ToList()
             }
         ).FirstOrDefaultAsync();
 
@@ -454,7 +501,23 @@ public class MaintenanceTicketsController : ControllerBase
             ResolvedAt = ticket.ResolvedAt,
             ClosedAt = ticket.ClosedAt,
             DueAt = ticket.DueAt,
-            SlaStatus = ticket.SlaStatus
+            SlaStatus = ticket.SlaStatus,
+            SlaPausedAt = ticket.SlaPausedAt,
+            TotalSlaPausedMinutes = ticket.TotalSlaPausedMinutes,
+            VendorLogs = ticket.VendorLogs.Select(vl => new TicketVendorLogResponse
+            {
+                Id = vl.Id,
+                MaintenanceTicketId = vl.MaintenanceTicketId,
+                VendorId = vl.VendorId,
+                VendorName = vl.Vendor!.Name,
+                DispatchedAt = vl.DispatchedAt,
+                EstimatedReturnDate = vl.EstimatedReturnDate,
+                ActualReturnDate = vl.ActualReturnDate,
+                PausedMinutes = vl.PausedMinutes,
+                RepairCost = vl.RepairCost,
+                Note = vl.Note,
+                CreatedAt = vl.CreatedAt
+            }).ToList()
         };
 
         return Ok(response);
@@ -741,7 +804,8 @@ public class MaintenanceTicketsController : ControllerBase
                 TicketStatuses.InProgress,
                 TicketStatuses.Resolved,
                 TicketStatuses.Closed,
-                TicketStatuses.Cancelled
+                TicketStatuses.Cancelled,
+                TicketStatuses.WaitingForVendor
             }
             .Contains(newStatus))
         {
@@ -792,10 +856,12 @@ public class MaintenanceTicketsController : ControllerBase
         }
 
         // Chi technician duoc assign moi duoc cap nhat trang thai xu ly.
+        // Admin/Manager cung co the cap nhat.
         if (newStatus == TicketStatuses.InProgress ||
-        newStatus == TicketStatuses.Resolved)
+        newStatus == TicketStatuses.Resolved ||
+        newStatus == TicketStatuses.WaitingForVendor)
         {
-            if (ticket.AssignedTechnicianId != userId)
+            if (role != UserRoles.Admin && role != UserRoles.Manager && ticket.AssignedTechnicianId != userId)
             {
                 return Forbid();
             }
@@ -829,7 +895,58 @@ public class MaintenanceTicketsController : ControllerBase
 
         var oldStatus = ticket.Status;
 
+        // Xử lý Vendor Management (Tạm dừng SLA)
+        if (newStatus == TicketStatuses.WaitingForVendor)
+        {
+            if (!request.VendorId.HasValue || !request.VendorEstimatedReturnDate.HasValue)
+            {
+                return BadRequest(new { message = "Vendor ID and Estimated Return Date are required when waiting for vendor" });
+            }
 
+            if (request.VendorEstimatedReturnDate.Value.Date < DateTime.UtcNow.Date)
+            {
+                return BadRequest(new { message = "Estimated Return Date cannot be in the past" });
+            }
+
+            ticket.SlaPausedAt = DateTime.UtcNow;
+            ticket.SlaStatus = SlaPolicy.Paused;
+
+            var vendorLog = new TicketVendorLog
+            {
+                MaintenanceTicketId = ticket.Id,
+                VendorId = request.VendorId.Value,
+                DispatchedAt = DateTime.UtcNow,
+                EstimatedReturnDate = request.VendorEstimatedReturnDate.Value,
+                Note = request.VendorNote?.Trim()
+            };
+            _context.TicketVendorLogs.Add(vendorLog);
+        }
+
+        // Xử lý Resume SLA
+        if (oldStatus == TicketStatuses.WaitingForVendor && newStatus == TicketStatuses.InProgress)
+        {
+            var activeLog = await _context.TicketVendorLogs
+                .Where(l => l.MaintenanceTicketId == ticket.Id && l.ActualReturnDate == null)
+                .OrderByDescending(l => l.DispatchedAt)
+                .FirstOrDefaultAsync();
+
+            if (activeLog != null)
+            {
+                activeLog.ActualReturnDate = DateTime.UtcNow;
+                var pausedTime = activeLog.ActualReturnDate.Value - activeLog.DispatchedAt;
+                activeLog.PausedMinutes = (int)pausedTime.TotalMinutes;
+
+                ticket.TotalSlaPausedMinutes += activeLog.PausedMinutes;
+                
+                if (ticket.DueAt.HasValue)
+                {
+                    ticket.DueAt = ticket.DueAt.Value.AddMinutes(activeLog.PausedMinutes);
+                }
+            }
+            
+            ticket.SlaPausedAt = null;
+            ticket.SlaStatus = SlaPolicy.InSLA;
+        }
 
         // Cap nhat trang thai hien tai cua ticket.
         ticket.Status = newStatus;
@@ -937,7 +1054,23 @@ public class MaintenanceTicketsController : ControllerBase
                 ResolvedAt = t.ResolvedAt,
                 ClosedAt = t.ClosedAt,
                 DueAt = t.DueAt,
-                SlaStatus = t.SlaStatus
+                SlaStatus = t.SlaStatus,
+                SlaPausedAt = t.SlaPausedAt,
+                TotalSlaPausedMinutes = t.TotalSlaPausedMinutes,
+                VendorLogs = t.VendorLogs.Select(vl => new TicketVendorLogResponse
+                {
+                    Id = vl.Id,
+                    MaintenanceTicketId = vl.MaintenanceTicketId,
+                    VendorId = vl.VendorId,
+                    VendorName = vl.Vendor!.Name,
+                    DispatchedAt = vl.DispatchedAt,
+                    EstimatedReturnDate = vl.EstimatedReturnDate,
+                    ActualReturnDate = vl.ActualReturnDate,
+                    PausedMinutes = vl.PausedMinutes,
+                    RepairCost = vl.RepairCost,
+                    Note = vl.Note,
+                    CreatedAt = vl.CreatedAt
+                }).ToList()
             }
         ).FirstAsync();
 

@@ -97,6 +97,8 @@ export function TicketsPage() {
         return <Badge variant="warning">{status}</Badge>;
       case "Cancelled":
         return <Badge variant="outline">{status}</Badge>;
+      case "WaitingForVendor":
+        return <Badge variant="destructive">{status}</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -427,6 +429,59 @@ export function TicketsPage() {
                             <span className="text-[10px] text-muted-foreground shrink-0">
                               {formatDateTime(h.changedAt)}
                             </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Vendor Logs */}
+                  {selectedTicket.vendorLogs && selectedTicket.vendorLogs.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t">
+                      <Label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                        <History className="h-3.5 w-3.5 text-primary" />
+                        <span>Lịch sử chuyển đơn vị ngoài</span>
+                      </Label>
+                      <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                        {selectedTicket.vendorLogs.map((vl) => (
+                          <div
+                            key={vl.id}
+                            className="text-[11px] p-2 rounded-lg border bg-muted/20 flex flex-col gap-1"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-foreground">
+                                Chuyển cho {vl.vendorName}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground shrink-0">
+                                {formatDateTime(vl.dispatchedAt)}
+                              </span>
+                            </div>
+                            <div className="text-muted-foreground">
+                              Dự kiến trả:{" "}
+                              <span className="font-medium text-foreground">
+                                {new Date(vl.estimatedReturnDate).toLocaleDateString()}
+                              </span>
+                              {vl.actualReturnDate && (
+                                <>
+                                  {" "}
+                                  | Thực tế:{" "}
+                                  <span className="font-medium text-foreground">
+                                    {new Date(vl.actualReturnDate).toLocaleDateString()}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                            {vl.pausedMinutes > 0 && (
+                              <div className="text-muted-foreground">
+                                Đã tạm dừng SLA:{" "}
+                                <span className="font-medium text-foreground">
+                                  {Math.floor(vl.pausedMinutes / 60)}h {vl.pausedMinutes % 60}m
+                                </span>
+                              </div>
+                            )}
+                            {vl.note && (
+                              <p className="text-muted-foreground italic mt-0.5">"{vl.note}"</p>
+                            )}
                           </div>
                         ))}
                       </div>

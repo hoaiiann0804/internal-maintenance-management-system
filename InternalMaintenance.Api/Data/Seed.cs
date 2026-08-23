@@ -1,4 +1,5 @@
 using InternalMaintenance.Api.Models;
+using InternalMaintenance.Api.Modules.Vendors;
 using Microsoft.EntityFrameworkCore;
 
 namespace InternalMaintenance.Api.Data;
@@ -12,6 +13,56 @@ public static class SeedData
         await SeedDepartmentsAsync(context);
         await SeedEquipmentAsync(context);
         await SeedAuthUsersAsync(context);
+        await SeedVendorsAsync(context);
+    }
+
+    private static async Task SeedVendorsAsync(AppDbContext context)
+    {
+        if (await context.Vendors.AnyAsync()) return;
+
+        context.Vendors.AddRange(
+            new Vendor
+            {
+                Name = "Daikin Việt Nam (Trung Tâm Bảo Hành)",
+                ContactPerson = "Nguyễn Văn Hùng",
+                Phone = "18006777",
+                Email = "baohanh@daikin.com.vn",
+                Address = "184 Cao Thắng, Phường 12, Quận 10, TP.HCM",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new Vendor
+            {
+                Name = "Dell Vietnam Care Center",
+                ContactPerson = "Trần Thị Mỹ",
+                Phone = "1800545455",
+                Email = "support@dellservice.vn",
+                Address = "23 Nguyễn Thị Minh Khai, Quận 1, TP.HCM",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new Vendor
+            {
+                Name = "Samsung Service Center",
+                ContactPerson = "Lê Hoàng Nam",
+                Phone = "1800588889",
+                Email = "services@samsung.com",
+                Address = "99 Nguyễn Huệ, Quận 1, TP.HCM",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new Vendor
+            {
+                Name = "Phong Vũ Computer & Repairs",
+                ContactPerson = "Phạm Quốc Tuấn",
+                Phone = "18006868",
+                Email = "suachua@phongvu.vn",
+                Address = "264 Nguyễn Thị Minh Khai, Quận 3, TP.HCM",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            }
+        );
+        await context.SaveChangesAsync();
     }
     private static async Task SeedRolesAsync(AppDbContext context)
     {
@@ -39,40 +90,46 @@ public static class SeedData
 
     private static async Task SeedDepartmentsAsync(AppDbContext context)
     {
-        await EnsureDepartmentAsync(context, "IT", "Information Technology Department", true);
-        await EnsureDepartmentAsync(context, "Accounting", "Accounting Department", false);
-        await EnsureDepartmentAsync(context, "HR", "Human Resources Department", false);
-        await context.SaveChangesAsync();
-    }
-
-    private static async Task EnsureDepartmentAsync(
-        AppDbContext context,
-        string name,
-        string description,
-        bool isMaintenanceTeam)
-    {
-        var department = await context.Departments
-            .FirstOrDefaultAsync(department => department.Name == name);
-
-        if (department is null)
+        if (await context.Departments.AnyAsync())
         {
-            context.Departments.Add(new Department
-            {
-                Name = name,
-                Description = description,
-                IsMaintenanceTeam = isMaintenanceTeam
-            });
             return;
         }
 
-        department.Description = description;
-        department.IsMaintenanceTeam = isMaintenanceTeam;
+        context.Departments.AddRange(
+            new Department
+            {
+                Name = "IT",
+                Description = "Information Technology Department",
+                IsMaintenanceTeam = true
+            },
+            new Department
+            {
+                Name = "Accounting",
+                Description = "Accounting Department",
+                IsMaintenanceTeam = false
+            },
+            new Department
+            {
+                Name = "HR",
+                Description = "Human Resources Department",
+                IsMaintenanceTeam = false
+            }
+        );
+
+        await context.SaveChangesAsync();
     }
 
     private static async Task SeedEquipmentAsync(AppDbContext context)
     {
-        var accountingDepartment = await context.Departments.FirstAsync(d => d.Name == "Accounting");
-        var itDepartment = await context.Departments.FirstAsync(d => d.Name == "IT");
+        var accountingDepartment = await context.Departments
+            .FirstOrDefaultAsync(d => d.Name == "Accounting");
+        var itDepartment = await context.Departments
+            .FirstOrDefaultAsync(d => d.Name == "IT");
+
+        if (accountingDepartment is null || itDepartment is null)
+        {
+            return;
+        }
 
         await EnsureEquipmentAsync(
             context,
@@ -214,7 +271,10 @@ public static class SeedData
         ? fullName : user.FullName;
 
         user.RoleId = roleId;
-        user.DepartmentId = departmentId;
+        if (departmentId.HasValue)
+        {
+            user.DepartmentId = departmentId;
+        }
 
         // Không tự động set IsActive = true cho user đã tồn tại,
         // Vì nếu Admin khóa user thì seed không nên tự mở lại 

@@ -23,13 +23,8 @@ public static class ApplicationBuilderExtensions
             var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             await dbContext.Database.MigrateAsync();
 
-            // Chi seed lan dau khi database chua co department nao.
-            // Cach nay tranh viec app tu tao lai du lieu demo moi lan restart server.
-            var hasAnyDepartment = await dbContext.Departments.AnyAsync();
-            if (!hasAnyDepartment)
-            {
-                await SeedData.InitializeAsync(dbContext);
-            }
+            // Chi seed khi bang tuong ung chua co du lieu (tranh ghi de du lieu cu)
+            await SeedData.InitializeAsync(dbContext);
         }
         catch (Exception ex)
         {

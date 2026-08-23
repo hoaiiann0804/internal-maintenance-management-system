@@ -1,4 +1,6 @@
 using InternalMaintenance.Api.Models;
+using InternalMaintenance.Api.Modules.Tickets;
+using InternalMaintenance.Api.Modules.Vendors;
 using Microsoft.EntityFrameworkCore;
 namespace InternalMaintenance.Api.Data;
 // DbContext = lớp của EF Core dùng để làm việc với database
@@ -19,6 +21,8 @@ public class AppDbContext : DbContext
     public DbSet<TicketComment> TicketComments => Set<TicketComment>();
     public DbSet<TicketAttachment> TicketAttachments => Set<TicketAttachment>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<Vendor> Vendors => Set<Vendor>();
+    public DbSet<TicketVendorLog> TicketVendorLogs => Set<TicketVendorLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -132,6 +136,20 @@ public class AppDbContext : DbContext
         .WithMany(u => u.RefreshTokens)
         .HasForeignKey(rt => rt.UserId)
         .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Vendor>().HasIndex(v => v.Name).IsUnique();
+
+        modelBuilder.Entity<TicketVendorLog>()
+            .HasOne(log => log.MaintenanceTicket)
+            .WithMany(ticket => ticket.VendorLogs)
+            .HasForeignKey(log => log.MaintenanceTicketId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<TicketVendorLog>()
+            .HasOne(log => log.Vendor)
+            .WithMany()
+            .HasForeignKey(log => log.VendorId)
+            .OnDelete(DeleteBehavior.Restrict);
 
     }
 }

@@ -7,6 +7,8 @@ import { TicketsPage } from "../pages/tickets/page";
 import { EquipmentPage } from "../pages/equipment/page";
 import { UsersPage } from "../pages/users/page";
 import { DepartmentsPage } from "../pages/departments/page";
+import { VendorsPage } from "../pages/vendors/page";
+import { ReportsPage } from "../pages/reports/page";
 import { AppLayout } from "./layouts/app-layout";
 import { PublicOnlyRoute } from "./guard/public-only-route";
 import type { ReactElement } from "react";
@@ -22,6 +24,14 @@ function RequireAuth({ children }: { children: ReactElement }) {
 function RequireAdmin({ children }: { children: ReactElement }) {
   const session = useAuthStore((state) => state.session);
   if (!session || session.user.roleName !== "Admin") {
+    return <Navigate to={appRoutes.dashboard} replace />;
+  }
+  return children;
+}
+
+function RequireManagerOrAdmin({ children }: { children: ReactElement }) {
+  const session = useAuthStore((state) => state.session);
+  if (!session || (session.user.roleName !== "Admin" && session.user.roleName !== "Manager")) {
     return <Navigate to={appRoutes.dashboard} replace />;
   }
   return children;
@@ -86,6 +96,26 @@ export function AppRouter() {
               <RequireAdmin>
                 <DepartmentsPage />
               </RequireAdmin>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={appRoutes.vendors}
+          element={
+            <RequireAuth>
+              <RequireManagerOrAdmin>
+                <VendorsPage />
+              </RequireManagerOrAdmin>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={appRoutes.reports}
+          element={
+            <RequireAuth>
+              <RequireManagerOrAdmin>
+                <ReportsPage />
+              </RequireManagerOrAdmin>
             </RequireAuth>
           }
         />
