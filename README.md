@@ -1,4 +1,4 @@
-﻿# Office Facility Maintenance Management System
+# Office Facility Maintenance Management System
 
 > A web-based internal platform for managing office equipment maintenance across departments, technicians, vendors, and staff. It centralizes requests, assignment, status tracking, SLA monitoring, vendor dispatch, automated email notifications, comments, history, and management reporting into one auditable workflow.
 
@@ -192,6 +192,76 @@ Three analytical pillars accessible from the `/reports` page:
 
 - Husky pre-commit hook integration
 - lint-staged automated formatting with Prettier and lint checking with ESLint prior to code commits
+
+## UI & Features Screenshots
+
+### 1. Dashboard & Analytics
+Overview of maintenance tickets, KPI summaries, and equipment status.
+![Dashboard UI](./InternalMaintenance.Client/public/screenshots/dashboard.png)
+![Dashboard UI](./InternalMaintenance.Client/public/screenshots/dashboard2.png)
+
+### 2. Ticket Management
+List of maintenance tickets with color-coded status badges, priority indicators, and SLA tracking.
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment1.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment2.png)
+
+### 3. Ticket Details & Workflow
+Detailed view of a ticket showing status transitions, assignee, support technician, SLA countdown, and discussion thread.
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment3.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment4.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment5.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment6.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment7.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment8.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment9.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment10.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment11.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment12.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment13.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment14.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment15.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment16.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment17.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment18.png)
+
+![Ticket Details](./InternalMaintenance.Client/public/screenshots/equipment19.png)
+
+### 4. Equipment Management
+Asset tracking interface with department assignment and active/maintenance status toggle.
+![Equipment Management](./InternalMaintenance.Client/public/screenshots/equipment20.png)
+
+![Equipment Management](./InternalMaintenance.Client/public/screenshots/equipment21.png)
+
+![Equipment Management](./InternalMaintenance.Client/public/screenshots/equipment22.png)
+
+### 5. User Management & Access Control
+Admin directory for managing users, roles (Admin/Manager/Staff/Technician), and department assignments.
+![User Management](./InternalMaintenance.Client/public/screenshots/user1.png)
+
+![User Management](./InternalMaintenance.Client/public/screenshots/user2.png)
+
+![User Management](./InternalMaintenance.Client/public/screenshots/user3.png)
+
+![User Management](./InternalMaintenance.Client/public/screenshots/user4.png)
+
+![User Management](./InternalMaintenance.Client/public/screenshots/user5.png)
 
 ## Business Workflow
 
