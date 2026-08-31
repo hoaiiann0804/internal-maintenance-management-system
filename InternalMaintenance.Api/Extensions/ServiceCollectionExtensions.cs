@@ -38,20 +38,31 @@ public static class ServiceCollectionExtensions
 
         var allowedOrigins = configuration
             .GetSection("Cors:AllowedOrigins")
-            .Get<string[]>();
+            .Get<string[]>() ?? [];
 
-        if (allowedOrigins == null || allowedOrigins.Length == 0)
-        {
-            allowedOrigins = ["http://localhost:5173", "https://office-maintenance.vercel.app"];
-        }
-
+        // Hỗ trợ linh hoạt tất cả các tên miền Vercel (Production & Preview) và Localhost
         services.AddCors(options =>
         {
             options.AddPolicy(FrontendCorsPolicyName, policy =>
             {
-                policy.WithOrigins(allowedOrigins)
-                      .AllowAnyHeader()
-                      .AllowAnyMethod();
+                policy.SetIsOriginAllowed(origin =>
+                {
+                    if (string.IsNullOrWhiteSpace(origin)) return false;
+                    try
+                    {
+                        var uri = new Uri(origin);
+                        var host = uri.Host;
+                        return host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+                               host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase) ||
+                               allowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase);
+                    }
+                    catch
+                    {
+                        return false;
+                    }
+                })
+                .AllowAnyHeader()
+                .AllowAnyMethod();
             });
         });
 
