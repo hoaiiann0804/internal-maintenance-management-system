@@ -1,20 +1,20 @@
-name: internal-maintenance-management
+name: internal-maintenance-dev
 
 services:
-  sqlserver:
+  sqlserver-dev:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: internal-maintenance-sqlserver-dev
     restart: unless-stopped
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd}
       MSSQL_PID: "Developer"
     ports:
-      - "${SQLSERVER_PORT}:1433"
+      - "${SQLSERVER_PORT:-1433}:1433"
     volumes:
       - internal_sqlserver_data_dev:/var/opt/mssql
-    mem_limit: 3072m
-    cpus: 1.0
+    mem_limit: 2048m
+    cpus: 2.0
     logging:
       driver: "json-file"
       options:

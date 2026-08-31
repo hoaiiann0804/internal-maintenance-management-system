@@ -1,3 +1,4 @@
+using System.Text;
 using InternalMaintenance.Api.Data;
 using InternalMaintenance.Api.Modules.Auth;
 using InternalMaintenance.Api.Modules.TicketAttachments;
@@ -7,16 +8,15 @@ using InternalMaintenance.Api.Services.Implementation;
 using InternalMaintenance.Api.Services.Interface;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Text;
+using Microsoft.IdentityModel.Tokens;
 
 namespace InternalMaintenance.Api.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    private const string FrontendCorsPolicyName = "FrontendCors";
+    public const string FrontendCorsPolicyName = "FrontendCors";
 
     public static IServiceCollection AddApplicationServices(
         this IServiceCollection services,
@@ -32,9 +32,18 @@ public static class ServiceCollectionExtensions
         services.AddDbContext<AppDbContext>(options =>
             options.UseSqlServer(connectionString));
 
+        // Health Checks: Giám sát trạng thái API và kết nối SQL Server
+        services.AddHealthChecks()
+            .AddCheck<DatabaseHealthCheck>("database", tags: ["ready"]);
+
         var allowedOrigins = configuration
             .GetSection("Cors:AllowedOrigins")
-            .Get<string[]>() ?? ["http://localhost:5173"];
+            .Get<string[]>();
+
+        if (allowedOrigins == null || allowedOrigins.Length == 0)
+        {
+            allowedOrigins = ["http://localhost:5173", "https://office-maintenance.vercel.app"];
+        }
 
         services.AddCors(options =>
         {
@@ -76,16 +85,21 @@ public static class ServiceCollectionExtensions
         });
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
+        
         services.AddHttpClient();
+        services.AddHttpClient(ResendEmailService.HttpClientName);
         services.AddHttpContextAccessor();
+
         services.Configure<R2AttachmentStorageOptions>(configuration.GetSection("R2"));
+        services.Configure<ResendOptions>(configuration.GetSection(ResendOptions.SectionName));
+
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ITicketAttachmentsService, TicketAttachmentsService>();
         services.AddScoped<IAttachmentStorageService, R2AttachmentStorageService>();
         services.AddScoped<JwtTokenService>();
         services.AddScoped<CurrentUserService>();
         services.AddScoped<ITicketCodeGenerator, TicketCodeGenerator>();
-        services.AddScoped<IEmailService, SmtpEmailService>();
+        services.AddScoped<IEmailService, ResendEmailService>();
         services.AddScoped<InternalMaintenance.Api.Modules.Reports.Services.ReportExportService>();
         services.AddHostedService<SlaMonitorWorker>();
 
@@ -99,7 +113,7 @@ public static class ServiceCollectionExtensions
         var value = configuration[key];
         if (string.IsNullOrWhiteSpace(value))
         {
-            throw new InvalidOperationException($"{key} is missing");
+            throw new InvalidOperationException($"{key} is missing from configuration/environment variables");
         }
 
         return value;

@@ -1,4 +1,5 @@
 using InternalMaintenance.Api.Data;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -36,6 +37,29 @@ public static class ApplicationBuilderExtensions
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
+
+        // Health Check Endpoint (Giám sát trạng thái API và kết nối Database)
+        app.MapHealthChecks("/health", new HealthCheckOptions
+        {
+            ResponseWriter = async (context, report) =>
+            {
+                context.Response.ContentType = "application/json";
+                var payload = new
+                {
+                    status = report.Status.ToString(),
+                    timestamp = DateTime.UtcNow,
+                    durationMs = Math.Round(report.TotalDuration.TotalMilliseconds, 2),
+                    components = report.Entries.Select(e => new
+                    {
+                        name = e.Key,
+                        status = e.Value.Status.ToString(),
+                        durationMs = Math.Round(e.Value.Duration.TotalMilliseconds, 2),
+                        description = e.Value.Description
+                    })
+                };
+                await context.Response.WriteAsJsonAsync(payload);
+            }
+        });
 
         app.MapGet("/", () => Results.Ok(new
         {

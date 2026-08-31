@@ -64,6 +64,13 @@ public class AppDbContext : DbContext
         .HasForeignKey(ticket => ticket.EquipmentId)
         .OnDelete(DeleteBehavior.Restrict);
 
+        // Chống Race Condition: Một thiết bị tại một thời điểm chỉ có tối đa 1 ticket đang active
+        modelBuilder.Entity<MaintenanceTicket>()
+            .HasIndex(t => t.EquipmentId)
+            .HasDatabaseName("IX_MaintenanceTickets_EquipmentId_Active")
+            .IsUnique()
+            .HasFilter("[Status] IN ('Pending', 'Assigned', 'InProgress', 'Resolved', 'WaitingForVendor')");
+
 
         // 1 User có thể thực hiện nhiều lần đổi trạng thái ticket
         modelBuilder.Entity<TicketStatusHistory>()

@@ -1,13 +1,20 @@
+# Environment Variables & Secrets
 .env
 .env.*
+*.env
+*.env.*
+!*.env.example
+!*.env.template
 !.env.example
 
+# Local AppSettings Secrets
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.local.json
+
+# Build Outputs & Dependencies
 bin/
 obj/
-
-.vs/
-.vscode/
-
 node_modules/
 **/node_modules/
 dist/
@@ -20,11 +27,13 @@ coverage/
 **/.vite/
 *.tsbuildinfo
 
+# IDE / Editor Files
+.vs/
+.vscode/
 *.user
 *.suo
 *.rsuser
 
-appsettings.Development.json
-
+# Logs & Local Databases
 Docker/db-data/
 *.log

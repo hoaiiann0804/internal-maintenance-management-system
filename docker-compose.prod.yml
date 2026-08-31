@@ -1,0 +1,32 @@
+name: internal-maintenance-prod
+
+services:
+  sqlserver-prod:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: internal-maintenance-sqlserver-prod
+    restart: always
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      MSSQL_PID: "Express"
+    ports:
+      # CHỈ BIND LOCALHOST: Ngăn chặn hoàn toàn truy cập từ Internet công cộng tới port 1433
+      - "127.0.0.1:1433:1433"
+    volumes:
+      - /var/lib/maintenance-mssql/data:/var/opt/mssql
+      - /var/lib/maintenance-mssql/backup:/var/opt/mssql/backup
+    # Giới hạn bộ nhớ nghiêm ngặt để không làm cạn kiệt RAM của Node.js E-commerce (VPS 4GB)
+    mem_limit: 1200m
+    mem_reservation: 512m
+    cpus: 1.5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\" || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s

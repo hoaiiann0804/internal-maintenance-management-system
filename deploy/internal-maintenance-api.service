@@ -1,0 +1,33 @@
+[Unit]
+Description=Office Facility Maintenance Management System API (.NET 10)
+After=network.target
+# Đợi SQL Server container khởi động trước khi bật API
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/internal-maintenance/api
+ExecStart=/usr/bin/dotnet /var/www/internal-maintenance/api/InternalMaintenance.Api.dll
+Restart=always
+RestartSec=10
+KillSignal=SIGINT
+SyslogIdentifier=maintenance-api
+
+# Load cấu hình bảo mật từ EnvironmentFile riêng biệt (không đưa secret vào git)
+EnvironmentFile=/etc/internal-maintenance/internal-maintenance.env
+
+# Thiết lập cứng cổng localhost 5001 và môi trường Production
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5001
+Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
+
+# Giới hạn tài nguyên để bảo vệ hệ thống E-commerce hiện có (VPS 4GB RAM)
+MemoryMax=500M
+MemoryHigh=400M
+CPUQuota=100%
+
+[Install]
+WantedBy=multi-user.target
