@@ -22,15 +22,18 @@ public static class ApplicationBuilderExtensions
         {
             using var scope = app.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            await dbContext.Database.MigrateAsync();
+            
+            // Đảm bảo tất cả các bảng Database được tạo từ EF Core Model
+            await dbContext.Database.EnsureCreatedAsync();
 
-            // Chi seed khi bang tuong ung chua co du lieu (tranh ghi de du lieu cu)
+            // Seed dữ liệu mặc định (Roles, Departments, Equipment, Test Accounts, Vendors)
             await SeedData.InitializeAsync(dbContext);
+            app.Logger.LogInformation("Database tables and seed data initialized successfully.");
         }
         catch (Exception ex)
         {
             app.Logger.LogError(ex,
-                "Database migration/seed failed during startup. The API will keep running, but DB-backed endpoints may fail.");
+                "Database initialization/seed failed during startup.");
         }
 
         app.UseCors(FrontendCorsPolicyName);
