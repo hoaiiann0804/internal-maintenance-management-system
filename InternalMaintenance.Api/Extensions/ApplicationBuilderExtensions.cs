@@ -7,8 +7,6 @@ namespace InternalMaintenance.Api.Extensions;
 
 public static class ApplicationBuilderExtensions
 {
-    private const string FrontendCorsPolicyName = "FrontendCors";
-
     public static async Task<WebApplication> UseApplicationPipelineAsync(
         this WebApplication app)
     {
@@ -23,12 +21,12 @@ public static class ApplicationBuilderExtensions
             using var scope = app.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             
-            // Đảm bảo tất cả các bảng Database được tạo từ EF Core Model
-            await dbContext.Database.EnsureCreatedAsync();
+            // Ap dung tat ca cac Migration chua thuc thi vao Database va dong bo schema
+            await dbContext.Database.MigrateAsync();
 
-            // Seed dữ liệu mặc định (Roles, Departments, Equipment, Test Accounts, Vendors)
+            // Seed du lieu mac dinh (Roles, Departments, Equipment, Test Accounts, Vendors)
             await SeedData.InitializeAsync(dbContext);
-            app.Logger.LogInformation("Database tables and seed data initialized successfully.");
+            app.Logger.LogInformation("Database migrations and seed data initialized successfully.");
         }
         catch (Exception ex)
         {
@@ -36,7 +34,7 @@ public static class ApplicationBuilderExtensions
                 "Database initialization/seed failed during startup.");
         }
 
-        app.UseCors(FrontendCorsPolicyName);
+        app.UseCors(ServiceCollectionExtensions.FrontendCorsPolicyName);
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
