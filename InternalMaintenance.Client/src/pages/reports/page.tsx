@@ -109,7 +109,8 @@ export function ReportsPage() {
       setIsExporting(true);
       await downloadExcelReport(filter);
       toast.success("Xuất file Excel báo cáo thành công!");
-    } catch {
+    } catch (error) {
+      console.error("Failed to export Excel report:", error);
       toast.error("Không thể xuất file Excel.");
     } finally {
       setIsExporting(false);

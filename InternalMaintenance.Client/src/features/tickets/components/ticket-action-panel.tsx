@@ -38,19 +38,11 @@ import {
   Loader2,
   AlertTriangle,
 } from "lucide-react";
+import { getFriendlyErrorMessage } from "@/shared/lib/error-utils";
 
 function toastApiError(error: unknown, fallback: string) {
-  if (axios.isAxiosError(error)) {
-    if (error.response?.status === 403) {
-      toast.error("Bạn không có quyền thực hiện thao tác này.");
-      return;
-    }
-
-    const msg = error.response?.data?.message ?? error.response?.data;
-    toast.error(typeof msg === "string" ? msg : fallback);
-  } else {
-    toast.error(fallback);
-  }
+  console.error("Ticket action failed:", error);
+  toast.error(getFriendlyErrorMessage(error, fallback));
 }
 
 type Props = {
@@ -210,7 +202,7 @@ export function TicketActionPanel({ ticket }: Props) {
           newStatus === "WaitingForVendor" ? new Date(vendorReturnDate).toISOString() : undefined,
         vendorNote: newStatus === "WaitingForVendor" ? vendorNote.trim() : undefined,
       });
-      toast.success(`Cập nhật trạng thái thành công: ${newStatus}`);
+      toast.success("Cập nhật trạng thái thành công!");
       setStatusNote("");
       setIsVendorDialogOpen(false);
     } catch (e) {

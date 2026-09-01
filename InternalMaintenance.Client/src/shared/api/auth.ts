@@ -12,6 +12,16 @@ export async function login(request: LoginRequest) {
   return data;
 }
 
+export async function loginWithGoogle(idToken: string) {
+  const { data } = await http.post<LoginResponse>("/auth/google", { idToken });
+  return data;
+}
+
+export async function switchRole(roleName: string) {
+  const { data } = await http.post<LoginResponse>("/auth/switch-role", { roleName });
+  return data;
+}
+
 export async function me() {
   const { data } = await http.get<AuthUser>("/auth/me");
   return data;

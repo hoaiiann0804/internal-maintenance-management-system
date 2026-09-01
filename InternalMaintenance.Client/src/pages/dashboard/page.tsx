@@ -81,28 +81,32 @@ export function DashboardPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "Resolved":
+        return <Badge variant="success">Đã xử lý</Badge>;
       case "Closed":
-        return <Badge variant="success">{status}</Badge>;
+        return <Badge variant="success">Đã đóng</Badge>;
       case "InProgress":
-        return <Badge variant="default">{status}</Badge>;
+        return <Badge variant="default">Đang xử lý</Badge>;
       case "Assigned":
-        return <Badge variant="warning">{status}</Badge>;
+        return <Badge variant="warning">Đã phân công</Badge>;
       case "Cancelled":
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">Đã hủy</Badge>;
+      case "WaitingForVendor":
+        return <Badge variant="destructive">Chờ đối tác</Badge>;
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return <Badge variant="secondary">Chờ tiếp nhận</Badge>;
     }
   };
 
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
       case "Critical":
+        return <Badge variant="destructive">Khẩn cấp</Badge>;
       case "High":
-        return <Badge variant="destructive">{priority}</Badge>;
+        return <Badge variant="destructive">Cao</Badge>;
       case "Medium":
-        return <Badge variant="warning">{priority}</Badge>;
+        return <Badge variant="warning">Trung bình</Badge>;
       default:
-        return <Badge variant="outline">{priority}</Badge>;
+        return <Badge variant="outline">Thấp</Badge>;
     }
   };
 
@@ -112,10 +116,10 @@ export function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border rounded-2xl p-6 shadow-sm">
         <div>
           <span className="text-xs font-semibold text-primary uppercase tracking-wider">
-            Overview
+            Tổng quan
           </span>
           <h1 className="text-2xl font-bold tracking-tight text-foreground mt-1">
-            Dashboard overview
+            Tổng quan hệ thống
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
             Tổng quan dữ liệu hệ thống quản lý bảo trì nội bộ — dữ liệu thời gian thực.
@@ -125,7 +129,7 @@ export function DashboardPage() {
           <Button asChild variant="default" size="sm">
             <Link to={appRoutes.tickets} className="gap-2">
               <Ticket className="h-4 w-4" />
-              <span>Quản lý Tickets</span>
+              <span>Quản lý Phiếu yêu cầu</span>
             </Link>
           </Button>
         </div>
@@ -136,7 +140,7 @@ export function DashboardPage() {
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase">Open Tickets</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase">Phiếu đang mở</p>
               <h3 className="text-2xl font-bold mt-1">
                 {isSummaryLoading ? (
                   <span className="text-muted text-base">...</span>
@@ -156,7 +160,7 @@ export function DashboardPage() {
           <CardContent className="p-5 flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase">
-                Active Equipment
+                Thiết bị hoạt động
               </p>
               <h3 className="text-2xl font-bold mt-1">
                 {isSummaryLoading ? (
@@ -177,7 +181,7 @@ export function DashboardPage() {
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase">SLA Compliance</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase">Tỷ lệ đạt SLA</p>
               <h3 className="text-2xl font-bold mt-1 text-emerald-600 dark:text-emerald-400">
                 {isTicketsLoading ? "..." : `${slaMetrics.complianceRate}%`}
               </h3>
@@ -193,7 +197,7 @@ export function DashboardPage() {
         <Card className="hover:shadow-md transition-shadow border-destructive/30">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase">Overdue SLA</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase">Quá hạn SLA</p>
               <h3 className="text-2xl font-bold mt-1 text-destructive">
                 {isTicketsLoading ? "..." : slaMetrics.overdueCount}
               </h3>
@@ -208,7 +212,7 @@ export function DashboardPage() {
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase">Departments</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase">Phòng ban</p>
               <h3 className="text-2xl font-bold mt-1">
                 {isSummaryLoading ? (
                   <span className="text-muted text-base">...</span>

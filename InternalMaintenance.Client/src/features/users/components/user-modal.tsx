@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import axios from "axios";
 import { useCreateUserMutation, useUpdateUserMutation } from "../api/use-user-mutations";
 import { useDepartmentsQuery } from "../../equipment/api/use-departments-query";
 import type { User } from "../../../entities/user/model/types";
+import { getFriendlyErrorMessage } from "@/shared/lib/error-utils";
 import {
   Dialog,
   DialogContent,
@@ -92,12 +92,8 @@ export function UserModal({ user, isOpen, onClose }: Props) {
       }
       onClose();
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        const msg = error.response?.data?.message ?? error.response?.data;
-        toast.error(typeof msg === "string" ? msg : "Thao tác thất bại.");
-      } else {
-        toast.error("Thao tác thất bại.");
-      }
+      console.error("Failed to save user:", error);
+      toast.error(getFriendlyErrorMessage(error, "Lưu thông tin người dùng thất bại."));
     }
   };
 

@@ -7,6 +7,10 @@ public interface IAuthService
 {
     Task<ServiceResult<LoginResponse>> LoginAsync(LoginRequest request);
 
+    Task<ServiceResult<LoginResponse>> LoginWithGoogleAsync(GoogleLoginRequest request);
+
+    Task<ServiceResult<LoginResponse>> SwitchRoleAsync(int userId, SwitchRoleRequest request);
+
     Task<ServiceResult<AuthUserResponse>> GetCurrentUserAsync(int userId);
 
     Task<ServiceResult> ChangePasswordAsync(int userId, ChangePasswordRequest request);

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import axios from "axios";
 import { useChangePasswordMutation } from "../api/use-change-password-mutation";
+import { getFriendlyErrorMessage } from "@/shared/lib/error-utils";
 import {
   Dialog,
   DialogContent,
@@ -62,12 +62,8 @@ export function ChangePasswordModal({ isOpen, onClose }: Props) {
       setConfirmPassword("");
       onClose();
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        const msg = error.response?.data?.message ?? error.response?.data;
-        toast.error(typeof msg === "string" ? msg : "Thay đổi mật khẩu thất bại.");
-      } else {
-        toast.error("Thay đổi mật khẩu thất bại.");
-      }
+      console.error("Change password failed:", error);
+      toast.error(getFriendlyErrorMessage(error, "Thay đổi mật khẩu thất bại."));
     }
   };
 

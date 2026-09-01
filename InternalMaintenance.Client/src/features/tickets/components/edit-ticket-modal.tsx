@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import axios from "axios";
 import { useUpdateTicketMutation } from "../api/use-update-ticket-mutation";
 import type { MaintenanceTicket, TicketPriority } from "../../../entities/ticket/model/types";
+import { getFriendlyErrorMessage } from "@/shared/lib/error-utils";
 import {
   Dialog,
   DialogContent,
@@ -62,12 +62,8 @@ export function EditTicketModal({ ticket, isOpen, onClose }: Props) {
       toast.success("Cập nhật ticket thành công!");
       onClose();
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        const msg = error.response?.data?.message ?? error.response?.data;
-        toast.error(typeof msg === "string" ? msg : "Không thể cập nhật ticket.");
-      } else {
-        toast.error("Không thể cập nhật ticket.");
-      }
+      console.error("Update ticket failed:", error);
+      toast.error(getFriendlyErrorMessage(error, "Không thể cập nhật ticket."));
     }
   };
 

@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import axios from "axios";
 import {
   useCreateEquipmentMutation,
   useUpdateEquipmentMutation,
 } from "../api/use-equipment-mutations";
 import { useDepartmentsQuery } from "../api/use-departments-query";
 import type { Equipment, EquipmentStatus } from "../../../entities/equipment/model/types";
+import { getFriendlyErrorMessage } from "@/shared/lib/error-utils";
 import {
   Dialog,
   DialogContent,
@@ -108,12 +108,8 @@ export function EquipmentModal({ equipment, isOpen, onClose }: Props) {
       }
       onClose();
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        const msg = error.response?.data?.message ?? error.response?.data;
-        toast.error(typeof msg === "string" ? msg : "Thao tác thất bại.");
-      } else {
-        toast.error("Thao tác thất bại.");
-      }
+      console.error("Failed to save equipment:", error);
+      toast.error(getFriendlyErrorMessage(error, "Lưu thông tin thiết bị thất bại."));
     }
   };
 

@@ -89,30 +89,32 @@ export function TicketsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "Resolved":
+        return <Badge variant="success">Đã xử lý</Badge>;
       case "Closed":
-        return <Badge variant="success">{status}</Badge>;
+        return <Badge variant="success">Đã đóng</Badge>;
       case "InProgress":
-        return <Badge variant="default">{status}</Badge>;
+        return <Badge variant="default">Đang xử lý</Badge>;
       case "Assigned":
-        return <Badge variant="warning">{status}</Badge>;
+        return <Badge variant="warning">Đã phân công</Badge>;
       case "Cancelled":
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">Đã hủy</Badge>;
       case "WaitingForVendor":
-        return <Badge variant="destructive">{status}</Badge>;
+        return <Badge variant="destructive">Chờ đối tác</Badge>;
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return <Badge variant="secondary">Chờ tiếp nhận</Badge>;
     }
   };
 
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
       case "Critical":
+        return <Badge variant="destructive">Khẩn cấp</Badge>;
       case "High":
-        return <Badge variant="destructive">{priority}</Badge>;
+        return <Badge variant="destructive">Cao</Badge>;
       case "Medium":
-        return <Badge variant="warning">{priority}</Badge>;
+        return <Badge variant="warning">Trung bình</Badge>;
       default:
-        return <Badge variant="outline">{priority}</Badge>;
+        return <Badge variant="outline">Thấp</Badge>;
     }
   };
 
@@ -122,7 +124,7 @@ export function TicketsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border rounded-2xl p-6 shadow-sm">
         <div>
           <span className="text-xs font-semibold text-primary uppercase tracking-wider">
-            Tickets Management
+            Quản lý Phiếu yêu cầu
           </span>
           <h1 className="text-2xl font-bold tracking-tight text-foreground mt-1">
             Danh sách yêu cầu bảo trì
