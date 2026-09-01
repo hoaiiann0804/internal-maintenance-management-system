@@ -2,13 +2,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { z } from "zod";
-import axios from "axios";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { Eye, EyeOff, Shield, Wrench, Bell, BarChart3 } from "lucide-react";
 import { wireframeData } from "../../../shared/mock/wireframe-data";
 import { appRoutes } from "../../../shared/config/routes";
 import { useLoginMutation } from "../api/use-login-mutation";
+import { useGoogleLoginMutation } from "../api/use-google-login-mutation";
+import { getFriendlyErrorMessage } from "@/shared/lib/error-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +39,7 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const loginMutation = useLoginMutation();
+  const googleLoginMutation = useGoogleLoginMutation();
   const isDev = import.meta.env.DEV;
 
   const {
@@ -58,12 +61,31 @@ export function LoginForm() {
       toast.success(`Chào mừng ${response.user.fullName}! Đang mở dashboard.`);
       navigate(appRoutes.dashboard, { replace: true });
     } catch (error: unknown) {
-      if (axios.isAxiosError(error) && [401, 403].includes(error.response?.status ?? 0)) {
-        toast.error("Email hoặc mật khẩu không đúng.");
-        return;
-      }
-      toast.error("Không thể đăng nhập. Vui lòng thử lại.");
+      console.error("Login attempt failed:", error);
+      toast.error(
+        getFriendlyErrorMessage(error, "Email hoặc mật khẩu không đúng. Vui lòng thử lại."),
+      );
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      toast.error("Không nhận được token xác thực từ Google.");
+      return;
+    }
+
+    try {
+      const response = await googleLoginMutation.mutateAsync(credentialResponse.credential);
+      toast.success(`Chào mừng ${response.user.fullName}! Đăng nhập Google thành công.`);
+      navigate(appRoutes.dashboard, { replace: true });
+    } catch (error: unknown) {
+      console.error("Google authentication failed:", error);
+      toast.error(getFriendlyErrorMessage(error, "Đã xảy ra lỗi khi đăng nhập bằng Google."));
+    }
+  };
+
+  const handleGoogleError = () => {
+    toast.error("Đăng nhập Google không thành công hoặc bị hủy.");
   };
 
   const features = [
@@ -202,6 +224,30 @@ export function LoginForm() {
               </CardContent>
             </Card>
           )}
+
+          {/* Google SSO Login */}
+          <div className="space-y-4">
+            <div className="flex justify-center w-full [&>div]:w-full [&>div>iframe]:w-full">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                useOneTap={false}
+                theme="outline"
+                size="large"
+                shape="rectangular"
+                text="continue_with"
+                width="100%"
+              />
+            </div>
+
+            <div className="relative flex items-center justify-center">
+              <div className="border-t border-border w-full" />
+              <span className="bg-background px-3 text-[11px] text-muted-foreground uppercase tracking-wider shrink-0 font-medium">
+                Hoặc bằng tài khoản nội bộ
+              </span>
+              <div className="border-t border-border w-full" />
+            </div>
+          </div>
 
           {/* Login form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

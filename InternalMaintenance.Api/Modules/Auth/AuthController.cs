@@ -34,6 +34,32 @@ public class AuthController : ControllerBase
         return Ok(result.Data);
     }
 
+    [HttpPost("google")]
+    public async Task<ActionResult<LoginResponse>> LoginWithGoogle(GoogleLoginRequest request)
+    {
+        var result = await _authService.LoginWithGoogleAsync(request);
+        if (!result.IsSuccess)
+        {
+            return StatusCode(result.StatusCode, new { message = result.Message });
+        }
+
+        return Ok(result.Data);
+    }
+
+    [Authorize]
+    [HttpPost("switch-role")]
+    public async Task<ActionResult<LoginResponse>> SwitchRole(SwitchRoleRequest request)
+    {
+        var currentUserId = _currentUserService.UserId;
+        var result = await _authService.SwitchRoleAsync(currentUserId, request);
+        if (!result.IsSuccess)
+        {
+            return StatusCode(result.StatusCode, new { message = result.Message });
+        }
+
+        return Ok(result.Data);
+    }
+
     [Authorize]
     [HttpGet("me")]
     public async Task<ActionResult<AuthUserResponse>> Me()

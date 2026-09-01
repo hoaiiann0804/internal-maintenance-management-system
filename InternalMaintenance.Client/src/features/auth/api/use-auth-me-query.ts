@@ -1,12 +1,15 @@
 import axios from "axios";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { me } from "../../../shared/api/auth";
 import type { AuthUser } from "../../../entities/auth/model/types";
 import { useAuthStore } from "../model/auth-store";
 
 function isAuthError(error: unknown) {
-  return axios.isAxiosError(error) && error.response?.status === 401;
+  return (
+    axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)
+  );
 }
 
 function isSameUser(left: AuthUser, right: AuthUser) {
@@ -41,6 +44,12 @@ export function useAuthMeQuery() {
       return;
     }
 
+    if (!query.data.isActive) {
+      toast.error("Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ Quản trị viên.");
+      signOut();
+      return;
+    }
+
     if (isSameUser(session.user, query.data)) {
       return;
     }
@@ -49,7 +58,7 @@ export function useAuthMeQuery() {
       ...session,
       user: query.data,
     });
-  }, [query.data, session, setSession]);
+  }, [query.data, session, setSession, signOut]);
 
   useEffect(() => {
     if (!session || !query.error) {
@@ -57,6 +66,10 @@ export function useAuthMeQuery() {
     }
 
     if (isAuthError(query.error)) {
+      console.error("Session authorization check failed:", query.error);
+      if (axios.isAxiosError(query.error) && query.error.response?.status === 403) {
+        toast.error("Tài khoản của bạn đã bị khóa hoặc vô hiệu hóa.");
+      }
       signOut();
     }
   }, [query.error, session, signOut]);
