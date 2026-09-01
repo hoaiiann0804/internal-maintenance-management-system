@@ -35,52 +35,6 @@ public class MaintenanceTicketsController : ControllerBase
 
 
 
-    // Ap dung quyen truy cap du lieu ticket theo role.
-    // Moi role chi xem duoc ticket nam trong pham vi cho phep.
-
-    private IQueryable<MaintenanceTicket> ApplyTicketAccessControl(
-        IQueryable<MaintenanceTicket> query
-    )
-    {
-        var role = _currentUserService.Role;
-        var userId = _currentUserService.UserId;
-        var departmentId = _currentUserService.DepartmentId;
-
-        // Admin xem toan bo ticket.
-        if (role == UserRoles.Admin)
-        {
-            return query;
-        }
-        // Manager chi xem ticket cua phong ban minh quan ly hoac pham vi bao tri cua phong minh.
-        if (role == UserRoles.Manager)
-        {
-            return query.Where(
-                ticket => ticket.Equipment!.DepartmentId == departmentId ||
-                          ticket.Equipment!.MaintenanceDepartmentId == departmentId
-            );
-        }
-        // Staff chi duoc xem ticket do chinh minh tao.
-        if (role == UserRoles.Staff)
-        {
-            return query.Where(
-                ticket => ticket.CreatedByUserId == userId
-            );
-        }
-        // Technician chi duoc xem ticket duoc giao xu ly hoac ticket do chinh minh tao.
-        if (role == UserRoles.Technician)
-        {
-            return query.Where(
-                ticket => ticket.AssignedTechnicianId == userId ||
-                          ticket.SupportTechnicianId == userId ||
-                          ticket.CreatedByUserId == userId
-            );
-        }
-        // Role khong hop le.
-        return query.Where(ticket => false);
-    }
-
-
-
     [Authorize]
     [HttpGet]
     public async Task<ActionResult<PagedResponse<MaintenanceTicketResponse>>> GetMaintenanceTickets(
@@ -88,87 +42,37 @@ public class MaintenanceTicketsController : ControllerBase
     )
     {
         var ticketQuery = _context.MaintenanceTickets
-       .AsNoTracking()
-       .AsQueryable();
+            .AsNoTracking()
+            .AsQueryable();
 
         ticketQuery = TicketAccessPolicy.Apply(ticketQuery, _currentUserService);
+
         var status = query.Status?.Trim();
         if (!string.IsNullOrWhiteSpace(status))
         {
-            ticketQuery = ticketQuery.Where(
-                ticket => ticket.Status == status
-            );
+            ticketQuery = ticketQuery.Where(ticket => ticket.Status == status);
         }
 
         var priority = query.Priority?.Trim();
         if (!string.IsNullOrWhiteSpace(priority))
         {
-            ticketQuery = ticketQuery.Where(
-                ticket => ticket.Priority == priority
-            );
+            ticketQuery = ticketQuery.Where(ticket => ticket.Priority == priority);
         }
 
         if (query.EquipmentId.HasValue)
         {
-            ticketQuery = ticketQuery.Where(
-                ticket => ticket.EquipmentId == query.EquipmentId.Value
-            );
+            ticketQuery = ticketQuery.Where(ticket => ticket.EquipmentId == query.EquipmentId.Value);
         }
 
         var totalItems = await ticketQuery.CountAsync();
-        ticketQuery = ticketQuery
-        .OrderByDescending(ticket => ticket.CreatedAt)
-        .ThenBy(ticket => ticket.Id);
 
-        ticketQuery = ticketQuery.ApplyPaging(query);
+        var tickets = await ticketQuery
+            .OrderByDescending(ticket => ticket.CreatedAt)
+            .ThenBy(ticket => ticket.Id)
+            .ApplyPaging(query)
+            .Select(TicketMappingExtensions.ResponseProjection)
+            .ToListAsync();
 
-        var tickets = await ticketQuery.Select(
-            ticket => new MaintenanceTicketResponse
-            {
-                Id = ticket.Id,
-                TicketCode = ticket.TicketCode,
-                Title = ticket.Title,
-                Description = ticket.Description,
-                EquipmentId = ticket.EquipmentId,
-                EquipmentCode = ticket.Equipment!.Code,
-                EquipmentName = ticket.Equipment!.Name,
-                EquipmentDepartmentId = ticket.Equipment.DepartmentId,
-                EquipmentMaintenanceDepartmentId = ticket.Equipment.MaintenanceDepartmentId,
-                CreatedByUserId = ticket.CreatedByUserId,
-                CreatedByUserName = ticket.CreatedByUser!.FullName,
-                // (co the dung cach  CreatedByUserName = ticket.CreatedByUser!= null? ticket.CreatedByUser.FullName: string.Empty )
-                AssignedTechnicianId = ticket.AssignedTechnicianId,
-                AssignedTechnicianName = ticket.AssignedTechnician != null ? ticket.AssignedTechnician.FullName : null,
-                SupportTechnicianId = ticket.SupportTechnicianId,
-                SupportTechnicianName = ticket.SupportTechnician != null ? ticket.SupportTechnician.FullName : null,
-                Priority = ticket.Priority,
-                Status = ticket.Status,
-                ResolutionNote = ticket.ResolutionNote,
-                CancellationReason = ticket.CancellationReason,
-                CreatedAt = ticket.CreatedAt,
-                ResolvedAt = ticket.ResolvedAt,
-
-                ClosedAt = ticket.ClosedAt,
-                DueAt = ticket.DueAt,
-                SlaStatus = ticket.SlaStatus,
-                SlaPausedAt = ticket.SlaPausedAt,
-                TotalSlaPausedMinutes = ticket.TotalSlaPausedMinutes,
-                VendorLogs = ticket.VendorLogs.Select(vl => new TicketVendorLogResponse
-                {
-                    Id = vl.Id,
-                    MaintenanceTicketId = vl.MaintenanceTicketId,
-                    VendorId = vl.VendorId,
-                    VendorName = vl.Vendor!.Name,
-                    DispatchedAt = vl.DispatchedAt,
-                    EstimatedReturnDate = vl.EstimatedReturnDate,
-                    ActualReturnDate = vl.ActualReturnDate,
-                    PausedMinutes = vl.PausedMinutes,
-                    RepairCost = vl.RepairCost,
-                    Note = vl.Note,
-                    CreatedAt = vl.CreatedAt
-                }).ToList()
-            }
-        ).ToListAsync();
         return Ok(tickets.ToPagedResponse(query, totalItems));
     }
 
@@ -178,69 +82,21 @@ public class MaintenanceTicketsController : ControllerBase
     {
         // Khoi tao truy van va ap dung phan quyen theo role.
         var ticketQuery = _context.MaintenanceTickets
-        .AsNoTracking()
-        .AsQueryable();
+            .AsNoTracking()
+            .AsQueryable();
 
         ticketQuery = TicketAccessPolicy.Apply(ticketQuery, _currentUserService);
-        var ticket = await ticketQuery.Where(
-            ticket => ticket.Id == id
-        ).Select(
-            ticket => new MaintenanceTicketResponse
-            {
-                Id = ticket.Id,
-                TicketCode = ticket.TicketCode,
-                Title = ticket.Title,
-                Description = ticket.Description,
-                EquipmentId = ticket.EquipmentId,
-                EquipmentCode = ticket.Equipment!.Code,
-                EquipmentName = ticket.Equipment!.Name,
-                EquipmentDepartmentId = ticket.Equipment.DepartmentId,
-                EquipmentMaintenanceDepartmentId = ticket.Equipment.MaintenanceDepartmentId,
-                CreatedByUserId = ticket.CreatedByUserId,
-                CreatedByUserName = ticket.CreatedByUser!.FullName,
-                // (co the dung cach  CreatedByUserName = ticket.CreatedByUser!= null? ticket.CreatedByUser.FullName: string.Empty )
-                AssignedTechnicianId = ticket.AssignedTechnicianId,
-                AssignedTechnicianName = ticket.AssignedTechnician != null ? ticket.AssignedTechnician.FullName : null,
-                SupportTechnicianId = ticket.SupportTechnicianId,
-                SupportTechnicianName = ticket.SupportTechnician != null ? ticket.SupportTechnician.FullName : null,
-                Priority = ticket.Priority,
-                Status = ticket.Status,
-                ResolutionNote = ticket.ResolutionNote,
-                CancellationReason = ticket.CancellationReason,
-                CreatedAt = ticket.CreatedAt,
-                ResolvedAt = ticket.ResolvedAt,
 
-                ClosedAt = ticket.ClosedAt,
-                DueAt = ticket.DueAt,
-                SlaStatus = ticket.SlaStatus,
-                SlaPausedAt = ticket.SlaPausedAt,
-                TotalSlaPausedMinutes = ticket.TotalSlaPausedMinutes,
-                VendorLogs = ticket.VendorLogs.Select(vl => new TicketVendorLogResponse
-                {
-                    Id = vl.Id,
-                    MaintenanceTicketId = vl.MaintenanceTicketId,
-                    VendorId = vl.VendorId,
-                    VendorName = vl.Vendor!.Name,
-                    DispatchedAt = vl.DispatchedAt,
-                    EstimatedReturnDate = vl.EstimatedReturnDate,
-                    ActualReturnDate = vl.ActualReturnDate,
-                    PausedMinutes = vl.PausedMinutes,
-                    RepairCost = vl.RepairCost,
-                    Note = vl.Note,
-                    CreatedAt = vl.CreatedAt
-                }).ToList()
-            }
-        ).FirstOrDefaultAsync();
+        var ticket = await ticketQuery
+            .Where(t => t.Id == id)
+            .Select(TicketMappingExtensions.ResponseProjection)
+            .FirstOrDefaultAsync();
 
         if (ticket is null)
         {
-            return NotFound(
-                new
-                {
-                    message = "Ticket not found"
-                }
-            );
+            return NotFound(new { message = "Ticket not found" });
         }
+
         return Ok(ticket);
     }
 
@@ -353,50 +209,9 @@ public class MaintenanceTicketsController : ControllerBase
         await _context.SaveChangesAsync();
 
         var response = await _context.MaintenanceTickets
-        .Where(t => t.Id == ticket.Id)
-        .Select(
-            t => new MaintenanceTicketResponse
-            {
-                Id = t.Id,
-                TicketCode = t.TicketCode,
-                Title = t.Title,
-                Description = t.Description,
-                EquipmentId = t.EquipmentId,
-                EquipmentCode = t.Equipment!.Code,
-                EquipmentName = t.Equipment!.Name,
-                CreatedByUserId = t.CreatedByUserId,
-                CreatedByUserName = t.CreatedByUser!.FullName,
-                AssignedTechnicianId = t.AssignedTechnicianId,
-                AssignedTechnicianName = t.AssignedTechnician != null ? t.AssignedTechnician.FullName : null,
-                SupportTechnicianId = t.SupportTechnicianId,
-                SupportTechnicianName = t.SupportTechnician != null ? t.SupportTechnician.FullName : null,
-                Priority = t.Priority,
-                Status = t.Status,
-                ResolutionNote = t.ResolutionNote,
-                CancellationReason = t.CancellationReason,
-                CreatedAt = t.CreatedAt,
-                ResolvedAt = t.ResolvedAt,
-                ClosedAt = t.ClosedAt,
-                DueAt = t.DueAt,
-                SlaStatus = t.SlaStatus,
-                SlaPausedAt = t.SlaPausedAt,
-                TotalSlaPausedMinutes = t.TotalSlaPausedMinutes,
-                VendorLogs = t.VendorLogs.Select(vl => new TicketVendorLogResponse
-                {
-                    Id = vl.Id,
-                    MaintenanceTicketId = vl.MaintenanceTicketId,
-                    VendorId = vl.VendorId,
-                    VendorName = vl.Vendor!.Name,
-                    DispatchedAt = vl.DispatchedAt,
-                    EstimatedReturnDate = vl.EstimatedReturnDate,
-                    ActualReturnDate = vl.ActualReturnDate,
-                    PausedMinutes = vl.PausedMinutes,
-                    RepairCost = vl.RepairCost,
-                    Note = vl.Note,
-                    CreatedAt = vl.CreatedAt
-                }).ToList()
-            }
-        ).FirstOrDefaultAsync();
+            .Where(t => t.Id == ticket.Id)
+            .Select(TicketMappingExtensions.ResponseProjection)
+            .FirstOrDefaultAsync();
 
         return CreatedAtAction(
             nameof(GetMaintenanceTicketById),
@@ -410,19 +225,15 @@ public class MaintenanceTicketsController : ControllerBase
     public async Task<ActionResult<MaintenanceTicketResponse>> UpdateTicket(int id, UpdateTicketRequest request)
     {
         var ticket = await _context.MaintenanceTickets
-        // Load cac thong tin lien quan de tra ve du lieu ticket day du sau khi cap nhat.
-        .Include(t => t.Equipment)
-        .Include(t => t.CreatedByUser)
-        .Include(t => t.AssignedTechnician)
-        .FirstOrDefaultAsync(t => t.Id == id);
+            // Load cac thong tin lien quan de tra ve du lieu ticket day du sau khi cap nhat.
+            .Include(t => t.Equipment)
+            .Include(t => t.CreatedByUser)
+            .Include(t => t.AssignedTechnician)
+            .FirstOrDefaultAsync(t => t.Id == id);
+
         if (ticket is null)
         {
-            return NotFound(
-                new
-                {
-                    message = "Ticket Not Found"
-                }
-            );
+            return NotFound(new { message = "Ticket Not Found" });
         }
 
         var role = _currentUserService.Role;
@@ -476,49 +287,10 @@ public class MaintenanceTicketsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        var response = new MaintenanceTicketResponse
-        {
-            Id = ticket.Id,
-            TicketCode = ticket.TicketCode,
-            Title = ticket.Title,
-            Description = ticket.Description,
-            EquipmentId = ticket.EquipmentId,
-            EquipmentCode = ticket.Equipment!.Code,
-            EquipmentName = ticket.Equipment!.Name,
-            EquipmentDepartmentId = ticket.Equipment.DepartmentId,
-            EquipmentMaintenanceDepartmentId = ticket.Equipment.MaintenanceDepartmentId,
-            CreatedByUserId = ticket.CreatedByUserId,
-            CreatedByUserName = ticket.CreatedByUser!.FullName,
-            AssignedTechnicianId = ticket.AssignedTechnicianId,
-            AssignedTechnicianName = ticket.AssignedTechnician?.FullName,
-            SupportTechnicianId = ticket.SupportTechnicianId,
-            SupportTechnicianName = ticket.SupportTechnician?.FullName,
-            Priority = ticket.Priority,
-            Status = ticket.Status,
-            ResolutionNote = ticket.ResolutionNote,
-            CancellationReason = ticket.CancellationReason,
-            CreatedAt = ticket.CreatedAt,
-            ResolvedAt = ticket.ResolvedAt,
-            ClosedAt = ticket.ClosedAt,
-            DueAt = ticket.DueAt,
-            SlaStatus = ticket.SlaStatus,
-            SlaPausedAt = ticket.SlaPausedAt,
-            TotalSlaPausedMinutes = ticket.TotalSlaPausedMinutes,
-            VendorLogs = ticket.VendorLogs.Select(vl => new TicketVendorLogResponse
-            {
-                Id = vl.Id,
-                MaintenanceTicketId = vl.MaintenanceTicketId,
-                VendorId = vl.VendorId,
-                VendorName = vl.Vendor!.Name,
-                DispatchedAt = vl.DispatchedAt,
-                EstimatedReturnDate = vl.EstimatedReturnDate,
-                ActualReturnDate = vl.ActualReturnDate,
-                PausedMinutes = vl.PausedMinutes,
-                RepairCost = vl.RepairCost,
-                Note = vl.Note,
-                CreatedAt = vl.CreatedAt
-            }).ToList()
-        };
+        var response = await _context.MaintenanceTickets
+            .Where(t => t.Id == id)
+            .Select(TicketMappingExtensions.ResponseProjection)
+            .FirstOrDefaultAsync();
 
         return Ok(response);
     }
@@ -723,42 +495,9 @@ public class MaintenanceTicketsController : ControllerBase
 
         var response = await _context.MaintenanceTickets
             .Where(t => t.Id == id)
-            .Select(t => new MaintenanceTicketResponse
-            {
-                Id = t.Id,
-                TicketCode = t.TicketCode,
-                Title = t.Title,
-                Description = t.Description,
+            .Select(TicketMappingExtensions.ResponseProjection)
+            .FirstAsync();
 
-                EquipmentId = t.EquipmentId,
-                EquipmentCode = t.Equipment!.Code,
-                EquipmentName = t.Equipment.Name,
-                EquipmentDepartmentId = t.Equipment.DepartmentId,
-                EquipmentMaintenanceDepartmentId = t.Equipment.MaintenanceDepartmentId,
-
-                CreatedByUserId = t.CreatedByUserId,
-                CreatedByUserName = t.CreatedByUser!.FullName,
-
-                AssignedTechnicianId = t.AssignedTechnicianId,
-                AssignedTechnicianName = t.AssignedTechnician != null
-                    ? t.AssignedTechnician.FullName
-                    : null,
-                SupportTechnicianId = t.SupportTechnicianId,
-                SupportTechnicianName = t.SupportTechnician != null
-                    ? t.SupportTechnician.FullName
-                    : null,
-
-                Priority = t.Priority,
-                Status = t.Status,
-                ResolutionNote = t.ResolutionNote,
-                CancellationReason = t.CancellationReason,
-                CreatedAt = t.CreatedAt,
-                ResolvedAt = t.ResolvedAt,
-                ClosedAt = t.ClosedAt,
-                DueAt = t.DueAt,
-                SlaStatus = t.SlaStatus
-
-            }).FirstAsync();
         return Ok(response);
     }
 
@@ -1019,60 +758,9 @@ public class MaintenanceTicketsController : ControllerBase
         await _context.SaveChangesAsync();
 
         var response = await _context.MaintenanceTickets
-        .Where(t => t.Id == id)
-        .Select(
-            t => new MaintenanceTicketResponse
-            {
-                Id = t.Id,
-                TicketCode = t.TicketCode,
-                Title = t.Title,
-                Description = t.Description,
-
-                EquipmentId = t.EquipmentId,
-                EquipmentCode = t.Equipment!.Code,
-                EquipmentName = t.Equipment.Name,
-                EquipmentDepartmentId = t.Equipment.DepartmentId,
-                EquipmentMaintenanceDepartmentId = t.Equipment.MaintenanceDepartmentId,
-
-                CreatedByUserId = t.CreatedByUserId,
-                CreatedByUserName = t.CreatedByUser!.FullName,
-
-                AssignedTechnicianId = t.AssignedTechnicianId,
-                AssignedTechnicianName = t.AssignedTechnician != null
-                ? t.AssignedTechnician.FullName
-                : null,
-                SupportTechnicianId = t.SupportTechnicianId,
-                SupportTechnicianName = t.SupportTechnician != null
-                ? t.SupportTechnician.FullName
-                : null,
-
-                Priority = t.Priority,
-                Status = t.Status,
-                ResolutionNote = t.ResolutionNote,
-                CancellationReason = t.CancellationReason,
-                CreatedAt = t.CreatedAt,
-                ResolvedAt = t.ResolvedAt,
-                ClosedAt = t.ClosedAt,
-                DueAt = t.DueAt,
-                SlaStatus = t.SlaStatus,
-                SlaPausedAt = t.SlaPausedAt,
-                TotalSlaPausedMinutes = t.TotalSlaPausedMinutes,
-                VendorLogs = t.VendorLogs.Select(vl => new TicketVendorLogResponse
-                {
-                    Id = vl.Id,
-                    MaintenanceTicketId = vl.MaintenanceTicketId,
-                    VendorId = vl.VendorId,
-                    VendorName = vl.Vendor!.Name,
-                    DispatchedAt = vl.DispatchedAt,
-                    EstimatedReturnDate = vl.EstimatedReturnDate,
-                    ActualReturnDate = vl.ActualReturnDate,
-                    PausedMinutes = vl.PausedMinutes,
-                    RepairCost = vl.RepairCost,
-                    Note = vl.Note,
-                    CreatedAt = vl.CreatedAt
-                }).ToList()
-            }
-        ).FirstAsync();
+            .Where(t => t.Id == id)
+            .Select(TicketMappingExtensions.ResponseProjection)
+            .FirstAsync();
 
         return Ok(response);
     }
