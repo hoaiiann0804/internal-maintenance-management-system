@@ -4,7 +4,7 @@ import { useAuthStore } from "@/features/auth/model/auth-store";
 import { appRoutes } from "@/shared/config/routes";
 import { logout } from "@/shared/api/auth";
 import { UserProfile, ThemeToggle } from "@/shared/ui";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ChangePasswordModal } from "@/features/auth/components/change-password-modal";
 import {
   LayoutDashboard,
@@ -32,10 +32,13 @@ export function AppLayout() {
   const isManagerOrAdmin = isAdmin || session?.user.roleName === "Manager";
   const isLoginPage = location.pathname === appRoutes.login || !session;
 
-  // Auto close mobile menu on route change
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [location.pathname]);
+  const [prevPath, setPrevPath] = useState(location.pathname);
+  if (prevPath !== location.pathname) {
+    setPrevPath(location.pathname);
+    if (isMobileMenuOpen) {
+      setIsMobileMenuOpen(false);
+    }
+  }
 
   const handleLogout = async (): Promise<void> => {
     const refreshToken = session?.refreshToken;
