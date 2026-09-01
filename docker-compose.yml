@@ -23,3 +23,5 @@ services:
 
 volumes:
   internal_sqlserver_data_dev:
+    name: internal-maintenance-management_internal_sqlserver_data_dev
+    external: true
