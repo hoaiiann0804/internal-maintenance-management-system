@@ -21,6 +21,7 @@ import {
 } from "../../../shared/api/attachments";
 import { attachmentsQueryKey } from "./use-ticket-attachments-query";
 import type { FileUploadItem, AttachmentFileType } from "../../../entities/ticket/model/types";
+import { getFriendlyErrorMessage } from "@/shared/lib/error-utils";
 
 // Ánh xạ contentType sang FileType (mirror logic C# TicketAttachmentRules.ResolveFileType)
 function resolveFileType(contentType: string): AttachmentFileType {
@@ -109,8 +110,11 @@ export function useUploadAttachment(ticketId: number) {
           queryKey: attachmentsQueryKey(ticketId),
         });
       } catch (err) {
-        // Một trong 3 bước thất bại — hiển thị lỗi trên file item đó
-        const message = err instanceof Error ? err.message : "Upload thất bại, vui lòng thử lại.";
+        // Một trong 3 bước thất bại — hiển thị lỗi thân thiện trên file item đó
+        const message = getFriendlyErrorMessage(
+          err,
+          "Upload thất bại. Vui lòng kiểm tra mạng hoặc thử lại.",
+        );
         patchItem(uid, { status: "error", error: message });
       }
     },
