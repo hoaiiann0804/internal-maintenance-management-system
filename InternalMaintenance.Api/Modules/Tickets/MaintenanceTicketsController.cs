@@ -206,7 +206,22 @@ public class MaintenanceTicketsController : ControllerBase
         };
 
         _context.MaintenanceTickets.Add(ticket);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            var isDuplicateActive = await _context.MaintenanceTickets
+                .AnyAsync(t => t.EquipmentId == request.EquipmentId && TicketWorkflowRules.OpenStatuses.Contains(t.Status));
+
+            if (isDuplicateActive)
+            {
+                return Conflict(new { message = "This equipment already has an active maintenance ticket" });
+            }
+
+            throw;
+        }
 
         var response = await _context.MaintenanceTickets
             .Where(t => t.Id == ticket.Id)
