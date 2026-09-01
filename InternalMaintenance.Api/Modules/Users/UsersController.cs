@@ -344,6 +344,20 @@ public class UsersController : ControllerBase
 
         user.IsActive = request.IsActive;
         user.UpdatedAt = DateTime.UtcNow;
+
+        if (!request.IsActive)
+        {
+            var activeRefreshTokens = await _context.RefreshTokens
+                .Where(rt => rt.UserId == id && !rt.IsRevoked)
+                .ToListAsync();
+
+            foreach (var token in activeRefreshTokens)
+            {
+                token.IsRevoked = true;
+                token.RevokedAt = DateTime.UtcNow;
+            }
+        }
+
         await _context.SaveChangesAsync();
         var response = await _context.Users
         .Where(u => u.Id == user.Id)
