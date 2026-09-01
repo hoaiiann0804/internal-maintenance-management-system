@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import axios from "axios";
 import { useAuthStore } from "../../features/auth/model/auth-store";
 import { useUsersQuery } from "../../features/tickets/api/use-users-query";
 import { useUpdateUserActiveMutation } from "../../features/users/api/use-user-mutations";
@@ -29,6 +28,7 @@ import {
 } from "lucide-react";
 
 import { formatDateTime } from "@/shared/lib/date-utils";
+import { getFriendlyErrorMessage } from "@/shared/lib/error-utils";
 
 function getInitials(name: string | undefined) {
   if (!name) return "?";
@@ -74,12 +74,8 @@ export function UsersPage() {
       await toggleActiveMutation.mutateAsync({ id, isActive: !currentActive });
       toast.success(`Đã ${actionText} tài khoản thành công!`);
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        const msg = error.response?.data?.message ?? error.response?.data;
-        toast.error(typeof msg === "string" ? msg : `Thao tác ${actionText} thất bại.`);
-      } else {
-        toast.error(`Thao tác ${actionText} thất bại.`);
-      }
+      console.error("Failed to toggle user active status:", error);
+      toast.error(getFriendlyErrorMessage(error, `Thao tác ${actionText} tài khoản thất bại.`));
     }
   };
 
@@ -117,7 +113,7 @@ export function UsersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border rounded-2xl p-6 shadow-sm">
         <div>
           <span className="text-xs font-semibold text-primary uppercase tracking-wider">
-            Personnel
+            Nhân sự
           </span>
           <h1 className="text-2xl font-bold tracking-tight text-foreground mt-1">
             Quản lý nhân viên
@@ -282,10 +278,10 @@ export function UsersPage() {
                               setIsResetOpen(true);
                             }}
                             className="h-8 px-2 text-xs gap-1"
-                            title="Reset mật khẩu"
+                            title="Đặt lại mật khẩu"
                           >
                             <KeyRound className="h-3.5 w-3.5 text-amber-500" />
-                            <span className="hidden sm:inline">Reset</span>
+                            <span className="hidden sm:inline">Đặt lại</span>
                           </Button>
 
                           <Button

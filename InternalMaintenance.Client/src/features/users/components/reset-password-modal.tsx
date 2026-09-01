@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import axios from "axios";
 import { useResetUserPasswordMutation } from "../api/use-user-mutations";
 import type { User } from "../../../entities/user/model/types";
+import { getFriendlyErrorMessage } from "@/shared/lib/error-utils";
 import {
   Dialog,
   DialogContent,
@@ -51,12 +51,8 @@ export function ResetPasswordModal({ user, isOpen, onClose }: Props) {
       setTemporaryPassword("");
       onClose();
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        const msg = error.response?.data?.message ?? error.response?.data;
-        toast.error(typeof msg === "string" ? msg : "Đặt lại mật khẩu thất bại.");
-      } else {
-        toast.error("Đặt lại mật khẩu thất bại.");
-      }
+      console.error("Failed to reset password:", error);
+      toast.error(getFriendlyErrorMessage(error, "Đặt lại mật khẩu thất bại."));
     }
   };
 
@@ -100,7 +96,7 @@ export function ResetPasswordModal({ user, isOpen, onClose }: Props) {
               Hủy
             </Button>
             <Button type="submit" disabled={resetMutation.isPending}>
-              {resetMutation.isPending ? "Đang xử lý..." : "Reset mật khẩu"}
+              {resetMutation.isPending ? "Đang xử lý..." : "Đặt lại mật khẩu"}
             </Button>
           </DialogFooter>
         </form>

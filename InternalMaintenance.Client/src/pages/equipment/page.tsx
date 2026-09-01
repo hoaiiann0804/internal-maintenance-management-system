@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import axios from "axios";
 import { useAuthStore } from "../../features/auth/model/auth-store";
 import { useEquipmentQuery } from "../../features/tickets/api/use-equipment-query";
 import { useDepartmentsQuery } from "../../features/equipment/api/use-departments-query";
@@ -24,6 +23,7 @@ import {
 } from "lucide-react";
 
 import { formatDateOnly } from "@/shared/lib/date-utils";
+import { getFriendlyErrorMessage } from "@/shared/lib/error-utils";
 
 export function EquipmentPage() {
   const session = useAuthStore((state) => state.session);
@@ -61,12 +61,8 @@ export function EquipmentPage() {
       await deleteMutation.mutateAsync(id);
       toast.success("Xóa thiết bị thành công!");
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        const msg = error.response?.data?.message ?? error.response?.data;
-        toast.error(typeof msg === "string" ? msg : "Xóa thiết bị thất bại.");
-      } else {
-        toast.error("Xóa thiết bị thất bại.");
-      }
+      console.error("Failed to delete equipment:", error);
+      toast.error(getFriendlyErrorMessage(error, "Xóa thiết bị thất bại."));
     }
   };
 
@@ -94,7 +90,7 @@ export function EquipmentPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border rounded-2xl p-6 shadow-sm">
         <div>
           <span className="text-xs font-semibold text-primary uppercase tracking-wider">
-            Equipment
+            Thiết bị
           </span>
           <h1 className="text-2xl font-bold tracking-tight text-foreground mt-1">
             Danh sách thiết bị

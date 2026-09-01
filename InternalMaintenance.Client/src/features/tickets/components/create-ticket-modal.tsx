@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import axios from "axios";
 import { useCreateTicketMutation } from "../api/use-create-ticket-mutation";
 import { useEquipmentQuery } from "../api/use-equipment-query";
 import type { TicketPriority } from "../../../entities/ticket/model/types";
+import { getFriendlyErrorMessage } from "@/shared/lib/error-utils";
 import {
   Dialog,
   DialogContent,
@@ -60,11 +60,8 @@ export function CreateTicketModal({ isOpen, onClose }: { isOpen: boolean; onClos
       setPriority("");
       onClose();
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        toast.error(error.response?.data?.message || "Không thể tạo ticket.");
-      } else {
-        toast.error("Không thể tạo ticket.");
-      }
+      console.error("Create ticket failed:", error);
+      toast.error(getFriendlyErrorMessage(error, "Không thể tạo ticket."));
     }
   };
 
@@ -130,8 +127,7 @@ export function CreateTicketModal({ isOpen, onClose }: { isOpen: boolean; onClos
               ))}
             </select>
             <p className="text-[11px] text-muted-foreground">
-              Self-managed equipment is hidden here because it should not create maintenance
-              tickets.
+              Thiết bị tự quản lý không hiển thị ở đây vì không áp dụng tạo phiếu bảo trì.
             </p>
           </div>
 
@@ -144,7 +140,7 @@ export function CreateTicketModal({ isOpen, onClose }: { isOpen: boolean; onClos
               onChange={(e) => setPriority(e.target.value as TicketPriority | "")}
             >
               <option value="" className="bg-background text-foreground">
-                -- Mặc định (Medium) --
+                -- Mặc định (Trung bình) --
               </option>
               {PRIORITIES.map((p) => (
                 <option key={p} value={p} className="bg-background text-foreground">

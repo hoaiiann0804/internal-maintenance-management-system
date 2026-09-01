@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import axios from "axios";
 import { useAuthStore } from "@/features/auth/model/auth-store";
 import { useVendors, useToggleVendorActiveMutation } from "@/features/vendors/api/vendors-api";
 import { VendorModal } from "@/features/vendors/components/vendor-modal";
@@ -23,6 +22,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { formatDateTime } from "@/shared/lib/date-utils";
+import { getFriendlyErrorMessage } from "@/shared/lib/error-utils";
 
 export function VendorsPage() {
   const session = useAuthStore((state) => state.session);
@@ -40,18 +40,15 @@ export function VendorsPage() {
 
   const handleToggleActive = async (vendor: Vendor) => {
     const action = vendor.isActive ? "tắt (ngưng dùng)" : "bật (kích hoạt lại)";
+    const actionText = vendor.isActive ? "tắt" : "bật";
     if (!window.confirm(`Bạn có chắc muốn ${action} đối tác "${vendor.name}" không?`)) return;
 
     try {
       await toggleActiveMutation.mutateAsync(vendor.id);
-      toast.success(`Đã ${action} đối tác thành công!`);
+      toast.success(`Đã ${actionText} đối tác thành công!`);
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        const msg = error.response?.data?.message ?? error.response?.data;
-        toast.error(typeof msg === "string" ? msg : "Thao tác thất bại.");
-      } else {
-        toast.error("Thao tác thất bại.");
-      }
+      console.error("Failed to toggle vendor active state:", error);
+      toast.error(getFriendlyErrorMessage(error, `Thao tác ${actionText} đối tác thất bại.`));
     }
   };
 
@@ -89,7 +86,7 @@ export function VendorsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border rounded-2xl p-6 shadow-sm">
         <div>
           <span className="text-xs font-semibold text-primary uppercase tracking-wider">
-            Vendor Directory
+            Danh bạ đối tác
           </span>
           <h1 className="text-2xl font-bold tracking-tight text-foreground mt-1">
             Quản lý đối tác bảo hành ngoài (Vendors)

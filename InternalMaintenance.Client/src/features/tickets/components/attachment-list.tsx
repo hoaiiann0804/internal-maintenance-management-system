@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import axios from "axios";
 import type { TicketAttachment } from "../../../entities/ticket/model/types";
 import { getAttachmentDownloadUrl } from "../../../shared/api/attachments";
 import { useDeleteAttachmentMutation } from "../api/use-delete-attachment-mutation";
+import { getFriendlyErrorMessage } from "@/shared/lib/error-utils";
 import { AttachmentPreviewModal } from "./attachment-preview-modal";
 import { Button } from "@/components/ui/button";
 import { FileText, Image as ImageIcon, Video, Trash2, Download, Eye, Loader2 } from "lucide-react";
@@ -61,10 +61,8 @@ export function AttachmentList({ ticketId, attachments, canDelete, currentUserId
       setPreviewAttachment(attachment);
       setPreviewUrl(url);
     } catch (err) {
-      const msg = axios.isAxiosError(err)
-        ? ((err.response?.data?.message as string | undefined) ?? "Không thể tải file preview.")
-        : "Không thể tải file preview.";
-      toast.error(msg);
+      console.error("Preview attachment failed:", err);
+      toast.error(getFriendlyErrorMessage(err, "Không thể tải file xem trước."));
     } finally {
       setOpeningId(null);
     }
@@ -78,10 +76,8 @@ export function AttachmentList({ ticketId, attachments, canDelete, currentUserId
       const url = await getAttachmentDownloadUrl(ticketId, attachment.id);
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (err) {
-      const msg = axios.isAxiosError(err)
-        ? ((err.response?.data?.message as string | undefined) ?? "Không thể tải về file.")
-        : "Không thể tải về file.";
-      toast.error(msg);
+      console.error("Download attachment failed:", err);
+      toast.error(getFriendlyErrorMessage(err, "Không thể tải về file."));
     } finally {
       setOpeningId(null);
     }
@@ -99,10 +95,8 @@ export function AttachmentList({ ticketId, attachments, canDelete, currentUserId
         setPreviewUrl(null);
       }
     } catch (err) {
-      const msg = axios.isAxiosError(err)
-        ? ((err.response?.data?.message as string | undefined) ?? "Không thể xóa file.")
-        : "Không thể xóa file.";
-      toast.error(msg);
+      console.error("Delete attachment failed:", err);
+      toast.error(getFriendlyErrorMessage(err, "Không thể xóa file đính kèm."));
     } finally {
       setDeletingId(null);
     }

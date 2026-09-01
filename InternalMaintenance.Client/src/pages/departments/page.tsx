@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import axios from "axios";
 import { useAuthStore } from "../../features/auth/model/auth-store";
 import { useDepartmentsQuery } from "../../features/equipment/api/use-departments-query";
 import { useDeleteDepartmentMutation } from "../../features/departments/api/use-department-mutations";
@@ -24,6 +23,7 @@ import {
 } from "lucide-react";
 
 import { formatDateTime } from "@/shared/lib/date-utils";
+import { getFriendlyErrorMessage } from "@/shared/lib/error-utils";
 
 export function DepartmentsPage() {
   const session = useAuthStore((state) => state.session);
@@ -55,12 +55,8 @@ export function DepartmentsPage() {
       await deleteMutation.mutateAsync(id);
       toast.success("Xóa phòng ban thành công!");
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        const msg = error.response?.data?.message ?? error.response?.data;
-        toast.error(typeof msg === "string" ? msg : "Xóa phòng ban thất bại.");
-      } else {
-        toast.error("Xóa phòng ban thất bại.");
-      }
+      console.error("Failed to delete department:", error);
+      toast.error(getFriendlyErrorMessage(error, "Xóa phòng ban thất bại."));
     }
   };
 
@@ -85,7 +81,7 @@ export function DepartmentsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border rounded-2xl p-6 shadow-sm">
         <div>
           <span className="text-xs font-semibold text-primary uppercase tracking-wider">
-            Departments
+            Phòng ban
           </span>
           <h1 className="text-2xl font-bold tracking-tight text-foreground mt-1">
             Quản lý phòng ban

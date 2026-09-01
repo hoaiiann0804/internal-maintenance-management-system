@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import axios from "axios";
 import type { Vendor } from "@/entities/vendor/model/types";
 import { useCreateVendorMutation, useUpdateVendorMutation } from "../api/vendors-api";
+import { getFriendlyErrorMessage } from "@/shared/lib/error-utils";
 import {
   Dialog,
   DialogContent,
@@ -100,12 +100,8 @@ export function VendorModal({ vendor, isOpen, onClose }: Props) {
       }
       onClose();
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        const msg = error.response?.data?.message ?? error.response?.data;
-        toast.error(typeof msg === "string" ? msg : "Thao tác thất bại.");
-      } else {
-        toast.error("Thao tác thất bại.");
-      }
+      console.error("Failed to save vendor:", error);
+      toast.error(getFriendlyErrorMessage(error, "Lưu thông tin đối tác thất bại."));
     }
   };
 
